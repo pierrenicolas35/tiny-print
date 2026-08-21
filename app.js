@@ -41,19 +41,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
 
-    // Services UUIDs connus pour les imprimantes Tiny Print / GB01 / MX06 / Cat Printers
+    // Services UUIDs connus pour les imprimantes thermiques BLE (Tiny Print / GB01 / MX06 / Lovcoyo X6 / WalkPrint / Cat Printers)
     const BT_SERVICES = [
         '0000ff00-0000-1000-8000-00805f9b34fb', // Standard Tiny Print / GB01 Service 0xFF00
         '0000fee7-0000-1000-8000-00805f9b34fb', // Alternative GB01 / PassThrough Service
         '49535343-fe7d-4113-a20f-480805411652', // Microchip / UART Service
-        '000018f0-0000-1000-8000-00805f9b34fb'  // Serial Service
+        '000018f0-0000-1000-8000-00805f9b34fb', // Serial Service 0x18F0
+        '0000ae01-0000-1000-8000-00805f9b34fb', // Lovcoyo X6 / WalkPrint / Fun Print 0xAE01
+        '0000af00-0000-1000-8000-00805f9b34fb', // Service 0xAF00
+        '0000af02-0000-1000-8000-00805f9b34fb', // Service 0xAF02
+        '0000e725-0000-1000-8000-00805f9b34fb', // Service 0xE725
+        '0000ff01-0000-1000-8000-00805f9b34fb', // Service 0xFF01
+        '000018f1-0000-1000-8000-00805f9b34fb', // Service 0x18F1
+        '0000ffff-0000-1000-8000-00805f9b34fb', // Service 0xFFFF
+        '00001101-0000-1000-8000-00805f9b34fb'  // SPP Serial Profile
     ];
 
     const BT_CHARACTERISTICS = [
         '0000ff02-0000-1000-8000-00805f9b34fb', // Standard Tiny Print Write
         '0000ff01-0000-1000-8000-00805f9b34fb',
         '0000fee2-0000-1000-8000-00805f9b34fb',
-        '49535343-8841-43f4-a8d4-ecbe34729bb3'
+        '0000ae02-0000-1000-8000-00805f9b34fb', // Lovcoyo X6 / WalkPrint Write
+        '0000ae01-0000-1000-8000-00805f9b34fb',
+        '49535343-8841-43f4-a8d4-ecbe34729bb3',
+        '49535343-1e4d-4bd9-ba61-23c647249616',
+        '00002ab7-0000-1000-8000-00805f9b34fb'
     ];
 
     // --- DESSIN DU CANVAS (384 x 240) ---
@@ -299,28 +311,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bleGattServer = await bleDevice.gatt.connect();
 
-            // Recherche du service et de la caractéristique d'écriture
             let targetChar = null;
-            for (const serviceUuid of BT_SERVICES) {
+            const discoveredInfo = [];
+
+            // 1. Découverte dynamique via getPrimaryServices() s'il est supporté
+            let services = [];
+            try {
+                services = await bleGattServer.getPrimaryServices();
+            } catch (e) {
+                console.warn("getPrimaryServices() non supporté ou a échoué, repli sur la recherche par UUIDs connus.", e);
+            }
+
+            // 2. Si getPrimaryServices() n'a rien renvoyé, interroger sélectivement BT_SERVICES
+            if (!services || services.length === 0) {
+                for (const serviceUuid of BT_SERVICES) {
+                    try {
+                        const service = await bleGattServer.getPrimaryService(serviceUuid);
+                        if (service) services.push(service);
+                    } catch (e) {
+                        // Service non présent sur l'appareil
+                    }
+                }
+            }
+
+            // 3. Inspection des services et caractéristiques pour trouver la caractéristique d'écriture
+            for (const service of services) {
                 try {
-                    const service = await bleGattServer.getPrimaryService(serviceUuid);
-                    if (service) {
-                        const characteristics = await service.getCharacteristics();
-                        for (const char of characteristics) {
-                            if (char.properties.write || char.properties.writeWithoutResponse) {
-                                targetChar = char;
-                                break;
-                            }
+                    const characteristics = await service.getCharacteristics();
+                    const charLogs = [];
+
+                    for (const char of characteristics) {
+                        const props = [];
+                        if (char.properties.write) props.push("write");
+                        if (char.properties.writeWithoutResponse) props.push("writeWithoutResponse");
+                        if (char.properties.read) props.push("read");
+                        if (char.properties.notify) props.push("notify");
+                        if (char.properties.indicate) props.push("indicate");
+
+                        charLogs.push(`- Caractéristique: ${char.uuid} [${props.join(', ') || 'aucune'}]`);
+
+                        // Sélectionner la première caractéristique supportant l'écriture
+                        if (!targetChar && (char.properties.write || char.properties.writeWithoutResponse)) {
+                            targetChar = char;
                         }
                     }
+
+                    discoveredInfo.push(`Service ${service.uuid} :\n` + (charLogs.join('\n') || '  (aucune caractéristique)'));
                 } catch (e) {
-                    // Service non trouvé sur cet appareil, continuer
+                    discoveredInfo.push(`Service ${service.uuid} : impossible de lire les caractéristiques (${e.message})`);
                 }
-                if (targetChar) break;
             }
 
             if (!targetChar) {
-                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur cet appareil.");
+                let diagMsg = "Impossible de trouver une caractéristique d'écriture compatible sur cet appareil.\n\n";
+                if (discoveredInfo.length > 0) {
+                    diagMsg += "Détails des services/caractéristiques détectés :\n" + discoveredInfo.join('\n\n');
+                } else {
+                    diagMsg += "Aucun service primaire n'a pu être inspecté sur cet appareil.";
+                }
+                throw new Error(diagMsg);
             }
 
             bleWriteCharacteristic = targetChar;
