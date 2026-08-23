@@ -258,15 +258,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function initHomeScreen() {
         printTypesGrid.innerHTML = '';
         PRINT_TYPES.forEach(type => {
-            const card = document.createElement('div');
+            const card = document.createElement('button');
+            card.type = 'button';
             card.className = 'print-type-card';
             card.innerHTML = `
-                <div class="print-type-icon">${type.icon}</div>
-                <div class="print-type-content">
-                    <h3>${type.title}</h3>
-                    <p>${type.description}</p>
-                </div>
-                <button class="btn btn-primary btn-small">Sélectionner &rarr;</button>
+                <span class="print-type-icon">${type.icon}</span>
+                <span class="print-type-content">
+                    <span class="print-type-title">${type.title}</span>
+                    <span class="print-type-description">${type.description}</span>
+                </span>
+                <span class="btn btn-primary btn-small">Sélectionner &rarr;</span>
             `;
             card.addEventListener('click', () => selectPrintType(type));
             printTypesGrid.appendChild(card);
