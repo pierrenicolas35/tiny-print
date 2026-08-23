@@ -23,13 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.innerHTML = `
                     <form id="labelForm" onsubmit="return false;">
                         <div class="form-group">
-                            <label for="inputDiscipline">Discipline :</label>
-                            <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: Cardiologie">
+                            <label for="inputDiscipline">Discipline (max 4 car.) :</label>
+                            <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: CARD" maxlength="4" style="text-transform: uppercase;">
                         </div>
 
                         <div class="form-group">
                             <label for="inputDateEntree">Date d'entrée :</label>
-                            <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM">
+                            <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM" maxlength="5">
                         </div>
 
                         <div class="form-row">
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <div class="form-group">
                             <label for="inputDateNaissance">Date de naissance :</label>
-                            <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA">
+                            <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
                         </div>
 
                         <div class="form-group">
@@ -55,12 +55,49 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 `;
 
+                const inputDiscipline = container.querySelector('#inputDiscipline');
+                const inputDateEntree = container.querySelector('#inputDateEntree');
+                const inputDateNaissance = container.querySelector('#inputDateNaissance');
+
+                // Discipline : 4 car max & majuscules
+                if (inputDiscipline) {
+                    inputDiscipline.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.toUpperCase().slice(0, 4);
+                    });
+                }
+
+                // Auto-insertion du slash pour Date d'entrée (JJ/MM, ex: 2108 -> 21/08)
+                if (inputDateEntree) {
+                    inputDateEntree.addEventListener('input', (e) => {
+                        let digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        if (digits.length >= 3) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        } else {
+                            e.target.value = digits;
+                        }
+                    });
+                }
+
+                // Auto-insertion des slashes pour Date de naissance (JJ/MM/AAAA, ex: 16121985 -> 16/12/1985)
+                if (inputDateNaissance) {
+                    inputDateNaissance.addEventListener('input', (e) => {
+                        let digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                        if (digits.length >= 5) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+                        } else if (digits.length >= 3) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        } else {
+                            e.target.value = digits;
+                        }
+                    });
+                }
+
                 const inputs = container.querySelectorAll('input');
                 inputs.forEach(input => input.addEventListener('input', onInputChange));
             },
             getFormData: (container) => {
                 return {
-                    discipline: (container.querySelector('#inputDiscipline')?.value || '').trim(),
+                    discipline: (container.querySelector('#inputDiscipline')?.value || '').trim().toUpperCase().slice(0, 4),
                     dateEntree: (container.querySelector('#inputDateEntree')?.value || '').trim(),
                     nom: (container.querySelector('#inputNom')?.value || '').trim(),
                     prenom: (container.querySelector('#inputPrenom')?.value || '').trim(),
@@ -76,13 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fillStyle = '#000000';
                 ctx.textBaseline = 'top';
 
-                // 1. Discipline (verticale le long du bord gauche)
+                // 1. Discipline (verticale tout en haut à gauche, 4 car max)
                 if (data.discipline) {
                     ctx.save();
-                    ctx.translate(22, height / 2);
+                    // Positionnement vertical tout en haut à gauche
+                    ctx.translate(22, 10);
                     ctx.rotate(-Math.PI / 2);
                     ctx.font = 'bold 18px Arial, sans-serif';
-                    ctx.textAlign = 'center';
+                    ctx.textAlign = 'right';
                     ctx.fillText(data.discipline, 0, -8);
                     ctx.restore();
                 }
@@ -150,17 +188,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileTabs = document.getElementById('mobileTabs');
     const sectionForm = document.getElementById('sectionForm');
     const sectionPreview = document.getElementById('sectionPreview');
-    const sectionPrinter = document.getElementById('sectionPrinter');
+    const sectionPrinterGlobal = document.getElementById('sectionPrinterGlobal');
     const sectionQueue = document.getElementById('sectionQueue');
     const tabQueueCount = document.getElementById('tabQueueCount');
+
+    // Search UI Elements
+    const searchProgressContainer = document.getElementById('searchProgressContainer');
+    const searchStatusText = document.getElementById('searchStatusText');
+    const searchCountdown = document.getElementById('searchCountdown');
 
     // Canvas & Context
     const canvas = document.getElementById('labelCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Bluetooth UI
+    // Bluetooth & Serial UI
     const statusBadge = document.getElementById('bluetoothStatus');
     const btnConnect = document.getElementById('btnConnect');
+    const btnConnectSerial = document.getElementById('btnConnectSerial');
     const btnDisconnect = document.getElementById('btnDisconnect');
     const btnManualFeed = document.getElementById('btnManualFeed');
     const btnPrintDirect = document.getElementById('btnPrintDirect');
@@ -183,11 +227,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let isMobile = false;
     let activeTab = 'form'; // 'form' | 'preview' | 'printer'
     let queue = [];
+
+    // BLE & Serial Connection State
     let bleDevice = null;
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
+    let serialPort = null;
+    let serialWriter = null;
+    let connectionType = null; // 'ble' | 'serial' | null
 
-    // Services UUIDs connus pour les imprimantes thermiques BLE
+    // Search Timer State
+    let searchTimer = null;
+    let searchSecondsRemaining = 30;
+
+    // Services UUIDs connus pour les imprimantes thermiques BLE (X6, GB01, WalkPrint, Cat Printers, etc.)
     const BT_SERVICES = [
         '0000ff00-0000-1000-8000-00805f9b34fb',
         '0000fee7-0000-1000-8000-00805f9b34fb',
@@ -200,7 +253,11 @@ document.addEventListener('DOMContentLoaded', () => {
         '0000ff01-0000-1000-8000-00805f9b34fb',
         '000018f1-0000-1000-8000-00805f9b34fb',
         '0000ffff-0000-1000-8000-00805f9b34fb',
-        '00001101-0000-1000-8000-00805f9b34fb'
+        '00001101-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '0000ffe1-0000-1000-8000-00805f9b34fb',
+        '00001800-0000-1000-8000-00805f9b34fb',
+        '00001801-0000-1000-8000-00805f9b34fb'
     ];
 
     // --- DETECTION DU DEVICE (MOBILE VS DESKTOP) ---
@@ -224,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('mobile-mode');
             mobileTabs.classList.add('hidden');
             // Réafficher toutes les sections
-            [sectionForm, sectionPreview, sectionPrinter, sectionQueue].forEach(sec => sec.classList.remove('tab-hidden'));
+            [sectionForm, sectionPreview, sectionQueue].forEach(sec => sec.classList.remove('tab-hidden'));
         }
     }
 
@@ -240,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Visibilité des sections selon l'onglet
         sectionForm.classList.toggle('tab-hidden', activeTab !== 'form');
         sectionPreview.classList.toggle('tab-hidden', activeTab !== 'preview');
-        sectionPrinter.classList.toggle('tab-hidden', activeTab !== 'printer');
         sectionQueue.classList.toggle('tab-hidden', activeTab !== 'printer');
     }
 
@@ -414,21 +470,49 @@ document.addEventListener('DOMContentLoaded', () => {
         return createCmdPacket(0xA1, payload);
     }
 
-    // --- ENVOI BLE PAR CHUNKS ---
-    async function sendBytes(bytes) {
-        if (!bleWriteCharacteristic) {
-            throw new Error("Imprimante non connectée.");
-        }
+    // --- GESTION DE LA RECHERCHE ET DU COMPTE À REBOURS (30s) ---
+    function startSearchUI(label = "Recherche de l'imprimante...") {
+        stopSearchUI();
+        searchSecondsRemaining = 30;
+        searchStatusText.textContent = label;
+        searchCountdown.textContent = `${searchSecondsRemaining}s`;
+        searchProgressContainer.classList.remove('hidden');
 
-        const CHUNK_SIZE = 80;
-        for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-            const chunk = bytes.slice(i, i + CHUNK_SIZE);
-            if (bleWriteCharacteristic.properties.writeWithoutResponse) {
-                await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
+        searchTimer = setInterval(() => {
+            searchSecondsRemaining--;
+            if (searchSecondsRemaining >= 0) {
+                searchCountdown.textContent = `${searchSecondsRemaining}s`;
             } else {
-                await bleWriteCharacteristic.writeValue(chunk);
+                stopSearchUI();
             }
-            await new Promise(resolve => setTimeout(resolve, 15));
+        }, 1000);
+    }
+
+    function stopSearchUI() {
+        if (searchTimer) {
+            clearInterval(searchTimer);
+            searchTimer = null;
+        }
+        searchProgressContainer.classList.add('hidden');
+    }
+
+    // --- ENVOI DES DONNÉES EN CHUNKS (BLE OU SÉRIE) ---
+    async function sendBytes(bytes) {
+        if (connectionType === 'ble' && bleWriteCharacteristic) {
+            const CHUNK_SIZE = 80;
+            for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+                const chunk = bytes.slice(i, i + CHUNK_SIZE);
+                if (bleWriteCharacteristic.properties.writeWithoutResponse) {
+                    await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
+                } else {
+                    await bleWriteCharacteristic.writeValue(chunk);
+                }
+                await new Promise(resolve => setTimeout(resolve, 15));
+            }
+        } else if (connectionType === 'serial' && serialWriter) {
+            await serialWriter.write(bytes);
+        } else {
+            throw new Error("Aucune imprimante connectée (BLE ou Série).");
         }
     }
 
@@ -461,27 +545,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- WEB BLUETOOTH MANAGEMENT ---
     async function connectBluetooth() {
         try {
-            updateStatus("Connexion...", "connecting");
+            updateStatus("Recherche...", "connecting");
+            startSearchUI("Recherche Bluetooth (30s max)...");
 
-            bleDevice = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: BT_SERVICES
+            // Création d'une promesse avec un timeout strict de 30 secondes
+            const connectPromise = new Promise(async (resolve, reject) => {
+                try {
+                    const device = await navigator.bluetooth.requestDevice({
+                        acceptAllDevices: true,
+                        optionalServices: BT_SERVICES
+                    });
+                    resolve(device);
+                } catch (err) {
+                    reject(err);
+                }
             });
 
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error("Le délai de recherche de 30 secondes est écoulé sans sélection de périphérique."));
+                }, 30000);
+            });
+
+            bleDevice = await Promise.race([connectPromise, timeoutPromise]);
+
+            searchStatusText.textContent = "Connexion GATT et analyse des services...";
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-            bleGattServer = await bleDevice.gatt.connect();
+            // Connexion au serveur GATT avec retry si nécessaire (très utile sur Android)
+            let retries = 3;
+            bleGattServer = null;
+            while (retries > 0 && !bleGattServer) {
+                try {
+                    bleGattServer = await bleDevice.gatt.connect();
+                } catch (err) {
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
 
             let targetChar = null;
             const discoveredInfo = [];
 
+            // 1. Tenter la découverte globale des services
             let services = [];
             try {
                 services = await bleGattServer.getPrimaryServices();
             } catch (e) {
-                console.warn("getPrimaryServices() non supporté ou a échoué, repli sur UUIDs.", e);
+                console.warn("getPrimaryServices() global a échoué ou restreint, tentative par UUIDs connus...", e);
             }
 
+            // 2. Si getPrimaryServices() échoue ou renvoie vide (courant sur Android), boucler sur la liste élargie de UUIDs
             if (!services || services.length === 0) {
                 for (const serviceUuid of BT_SERVICES) {
                     try {
@@ -491,45 +606,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            // 3. Inspection approfondie de chaque service trouvé pour trouver n'importe quelle caractéristique d'écriture
             for (const service of services) {
                 try {
                     const characteristics = await service.getCharacteristics();
-                    const charLogs = [];
-
                     for (const char of characteristics) {
-                        const props = [];
-                        if (char.properties.write) props.push("write");
-                        if (char.properties.writeWithoutResponse) props.push("writeWithoutResponse");
-                        if (char.properties.read) props.push("read");
-                        if (char.properties.notify) props.push("notify");
-                        if (char.properties.indicate) props.push("indicate");
-
-                        charLogs.push(`- Caractéristique: ${char.uuid} [${props.join(', ') || 'aucune'}]`);
-
-                        if (!targetChar && (char.properties.write || char.properties.writeWithoutResponse)) {
+                        const canWrite = char.properties.write || char.properties.writeWithoutResponse;
+                        if (canWrite) {
                             targetChar = char;
+                            break;
                         }
                     }
-
-                    discoveredInfo.push(`Service ${service.uuid} :\n` + (charLogs.join('\n') || '  (aucune caractéristique)'));
+                    if (targetChar) break;
                 } catch (e) {
-                    discoveredInfo.push(`Service ${service.uuid} : impossible de lire les caractéristiques (${e.message})`);
+                    discoveredInfo.push(`Service ${service.uuid} non lisible: ${e.message}`);
                 }
             }
 
+            stopSearchUI();
+
             if (!targetChar) {
-                let diagMsg = "Impossible de trouver une caractéristique d'écriture compatible sur cet appareil.\n\n";
-                if (discoveredInfo.length > 0) {
-                    diagMsg += "Détails des services/caractéristiques détectés :\n" + discoveredInfo.join('\n\n');
-                } else {
-                    diagMsg += "Aucun service primaire n'a pu être inspecté sur cet appareil.";
-                }
-                throw new Error(diagMsg);
+                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur cet appareil Android/Bluetooth.\nVérifiez que l'imprimante est allumée et non appairée à une autre application.");
             }
 
             bleWriteCharacteristic = targetChar;
-            updateStatus("Connecté", "connected");
+            connectionType = 'ble';
+            updateStatus("Connecté (Bluetooth)", "connected");
+
             btnConnect.disabled = true;
+            btnConnectSerial.disabled = true;
             btnDisconnect.disabled = false;
             btnManualFeed.disabled = false;
             btnPrintDirect.disabled = false;
@@ -537,25 +642,79 @@ document.addEventListener('DOMContentLoaded', () => {
             updateQueueButtonsState();
 
         } catch (error) {
+            stopSearchUI();
             console.error("Erreur de connexion BLE:", error);
-            alert("Échec de connexion Bluetooth : " + error.message);
+            alert("Échec de recherche/connexion Bluetooth : " + error.message);
             updateStatus("Déconnecté", "disconnected");
         }
     }
 
-    function disconnectBluetooth() {
-        if (bleDevice && bleDevice.gatt.connected) {
-            bleDevice.gatt.disconnect();
+    // --- WEB SERIAL MANAGEMENT (Compatibilité Linux Mint / Windows / Mac) ---
+    async function connectSerial() {
+        if (!('serial' in navigator)) {
+            alert("L'API Web Serial n'est pas supportée par ce navigateur.\nSur Linux Mint, utilisez Google Chrome ou Microsoft Edge.");
+            return;
+        }
+
+        try {
+            updateStatus("Recherche Série...", "connecting");
+            startSearchUI("Sélection du port Série/USB (Linux)...");
+
+            const port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 9600 }); // Vitesse standard pour imprimante thermique USB/Série
+
+            serialPort = port;
+            serialWriter = port.writable.getWriter();
+            connectionType = 'serial';
+
+            stopSearchUI();
+            updateStatus("Connecté (Série / Linux)", "connected");
+
+            btnConnect.disabled = true;
+            btnConnectSerial.disabled = true;
+            btnDisconnect.disabled = false;
+            btnManualFeed.disabled = false;
+            btnPrintDirect.disabled = false;
+            btnPrintDirectMobile.disabled = false;
+            updateQueueButtonsState();
+
+        } catch (error) {
+            stopSearchUI();
+            console.error("Erreur de connexion Série:", error);
+            alert("Échec de connexion Série/USB : " + error.message);
+            updateStatus("Déconnecté", "disconnected");
+        }
+    }
+
+    async function disconnectBluetooth() {
+        stopSearchUI();
+        if (connectionType === 'ble' && bleDevice && bleDevice.gatt.connected) {
+            try { bleDevice.gatt.disconnect(); } catch (e) {}
+        } else if (connectionType === 'serial' && serialPort) {
+            try {
+                if (serialWriter) {
+                    serialWriter.releaseLock();
+                    serialWriter = null;
+                }
+                await serialPort.close();
+                serialPort = null;
+            } catch (e) {}
         }
         onDisconnected();
     }
 
     function onDisconnected() {
+        stopSearchUI();
         bleDevice = null;
         bleGattServer = null;
         bleWriteCharacteristic = null;
+        serialPort = null;
+        serialWriter = null;
+        connectionType = null;
+
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
+        btnConnectSerial.disabled = false;
         btnDisconnect.disabled = true;
         btnManualFeed.disabled = true;
         btnPrintDirect.disabled = true;
@@ -675,6 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
     btnConnect.addEventListener('click', connectBluetooth);
+    if (btnConnectSerial) {
+        btnConnectSerial.addEventListener('click', connectSerial);
+    }
     btnDisconnect.addEventListener('click', disconnectBluetooth);
 
     btnManualFeed.addEventListener('click', async () => {

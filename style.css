@@ -236,12 +236,112 @@ body {
     color: var(--text-color);
 }
 
+/* Global Printer Section Styling */
+.printer-global-card {
+    margin-bottom: 20px;
+    border-top: 4px solid var(--primary-color);
+}
+
+.printer-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.printer-card-header h2 {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.btn-large-connect {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    flex: 1 1 200px;
+}
+
+.printer-connect-group {
+    margin-bottom: 12px;
+}
+
+/* Search Animation & Countdown */
+.search-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+}
+
+.search-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #93c5fd;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.search-text-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.search-countdown {
+    background: #1e40af;
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+/* Settings Accordion */
+.settings-accordion {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 8px;
+}
+
+.settings-summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    outline: none;
+    user-select: none;
+}
+
+.settings-accordion[open] .settings-summary {
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
 /* Bluetooth Status */
 .status-container {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 16px;
 }
 
 .status-label {
