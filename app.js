@@ -261,14 +261,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('button');
             card.type = 'button';
             card.className = 'print-type-card';
-            card.innerHTML = `
-                <span class="print-type-icon">${type.icon}</span>
-                <span class="print-type-content">
-                    <span class="print-type-title">${type.title}</span>
-                    <span class="print-type-description">${type.description}</span>
-                </span>
-                <span class="btn btn-primary btn-small">Sélectionner &rarr;</span>
-            `;
+
+            const icon = document.createElement('span');
+            icon.className = 'print-type-icon';
+            icon.textContent = type.icon;
+
+            const content = document.createElement('span');
+            content.className = 'print-type-content';
+
+            const title = document.createElement('span');
+            title.className = 'print-type-title';
+            title.textContent = type.title;
+
+            const description = document.createElement('span');
+            description.className = 'print-type-description';
+            description.textContent = type.description;
+
+            const cta = document.createElement('span');
+            cta.className = 'btn btn-primary btn-small';
+            cta.textContent = 'Sélectionner →';
+            cta.setAttribute('aria-hidden', 'true');
+
+            content.appendChild(title);
+            content.appendChild(description);
+            card.appendChild(icon);
+            card.appendChild(content);
+            card.appendChild(cta);
             card.addEventListener('click', () => selectPrintType(type));
             printTypesGrid.appendChild(card);
         });
