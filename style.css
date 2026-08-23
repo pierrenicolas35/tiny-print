@@ -28,7 +28,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.5;
-    padding: 20px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -36,20 +36,162 @@ body {
 
 /* Header */
 .app-header {
-    text-align: center;
-    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto 20px auto;
+    width: 100%;
+}
+
+.header-main {
+    text-align: left;
 }
 
 .app-header h1 {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     color: var(--text-color);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .app-header .subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Views Container */
+.view-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    flex: 1;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Accueil : Menu de sélection des types d'impression */
+.welcome-card {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.welcome-card h2 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    border-bottom: none;
+}
+
+.welcome-text {
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+}
+
+.print-types-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    text-align: left;
+}
+
+.print-type-card {
+    background: #ffffff;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.print-type-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow);
+}
+
+.print-type-icon {
+    font-size: 2.2rem;
+}
+
+.print-type-content h3 {
+    font-size: 1.15rem;
+    margin-bottom: 6px;
+    color: var(--text-color);
+}
+
+.print-type-content p {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+/* Impression Bar Header */
+.print-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    background: #ffffff;
+    padding: 10px 16px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.active-type-badge {
+    font-size: 0.9rem;
+}
+
+.badge-label {
+    color: var(--text-muted);
+    margin-right: 6px;
+}
+
+.badge-value {
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Navigation Onglets Mobile */
+.mobile-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    background: #e2e8f0;
+    padding: 4px;
+    border-radius: var(--border-radius);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border: none;
+    background: transparent;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.tab-btn.active {
+    background: #ffffff;
+    color: var(--primary-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.tab-hidden {
+    display: none !important;
 }
 
 /* Main Layout */
@@ -57,10 +199,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
     width: 100%;
-    flex: 1;
 }
 
 .column {
@@ -178,6 +317,10 @@ label {
     gap: 10px;
     flex-wrap: wrap;
     margin-top: 16px;
+}
+
+.mobile-only-btn-group {
+    display: none;
 }
 
 .btn {
@@ -323,9 +466,43 @@ label {
     color: var(--text-muted);
 }
 
-/* Responsive */
-@media (max-width: 600px) {
+/* Styles spécifiques au Mode Mobile */
+body.mobile-mode .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+body.mobile-mode .header-actions {
+    width: 100%;
+}
+
+body.mobile-mode .header-actions .btn {
+    width: 100%;
+}
+
+body.mobile-mode .column {
+    flex: 1 1 100%;
+}
+
+body.mobile-mode .print-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+body.mobile-mode .mobile-only-btn-group {
+    display: flex;
+    margin-top: 16px;
+}
+
+/* Responsive Auto Fallback */
+@media (max-width: 768px) {
     body { padding: 10px; }
     .form-row { flex-direction: column; gap: 0; }
     .canvas-wrapper { padding: 8px; }
+    #labelCanvas {
+        max-width: 100%;
+        height: auto;
+    }
 }
