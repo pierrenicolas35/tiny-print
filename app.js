@@ -290,6 +290,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let searchTimer = null;
     let searchSecondsRemaining = 30;
 
+    // Paired Devices Cache (Background update)
+    let cachedPairedDevice = null;
+
+    async function updatePairedDevicesCache() {
+        if (navigator.bluetooth && typeof navigator.bluetooth.getDevices === 'function') {
+            try {
+                const pairedDevices = await navigator.bluetooth.getDevices();
+                cachedPairedDevice = pairedDevices.find(d => d.name === 'X6h-2CD2' || (d.name && d.name.startsWith('X6h-2CD2'))) || null;
+            } catch (e) {
+                console.warn("Mise à jour du cache getDevices() impossible:", e);
+            }
+        }
+    }
+
     // Services UUIDs connus pour les imprimantes thermiques BLE (X6, X6h, GB01, WalkPrint, Cat Printers, etc.)
     const BT_SERVICES = [
         '0000ff00-0000-1000-8000-00805f9b34fb',
@@ -731,29 +745,24 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus("Recherche...", "connecting");
             startSearchUI("Recherche de X6h-2CD2...");
 
-            // 1. Tenter une reconnexion transparente si un appareil X6h-2CD2 a déjà été autorisé
-            let deviceToConnect = null;
-            if (typeof navigator.bluetooth.getDevices === 'function') {
-                try {
-                    const pairedDevices = await navigator.bluetooth.getDevices();
-                    deviceToConnect = pairedDevices.find(d => d.name === 'X6h-2CD2' || (d.name && d.name.startsWith('X6h-2CD2')));
-                } catch (e) {
-                    console.warn("getDevices() a échoué, passage à requestDevice", e);
-                }
-            }
+            // Pour préserver le User Gesture exigé par l'API Web Bluetooth (SecurityError: Must be handling a user gesture to show a permission request),
+            // requestDevice est appelé immédiatement/synchrone dans la pile du gestionnaire d'événement sans `await` préalable
+            // si aucun appareil appairé n'est présent dans le cache synchrone `cachedPairedDevice`.
+            let deviceToConnect = cachedPairedDevice;
 
-            // 2. Si pas d'appareil préalablement autorisé trouvé, ouvrir la boite de dialogue filtrée sur X6h-2CD2
             if (!deviceToConnect) {
-                deviceToConnect = await navigator.bluetooth.requestDevice({
+                const requestPromise = navigator.bluetooth.requestDevice({
                     filters: [
                         { name: 'X6h-2CD2' },
                         { namePrefix: 'X6h-2CD2' }
                     ],
                     optionalServices: BT_SERVICES
                 });
+                deviceToConnect = await requestPromise;
             }
 
             bleDevice = deviceToConnect;
+            cachedPairedDevice = deviceToConnect;
             searchStatusText.textContent = "Connexion à X6h-2CD2 en cours...";
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
@@ -823,6 +832,9 @@ document.addEventListener('DOMContentLoaded', () => {
         btnPrintDirect.disabled = false;
         btnPrintDirectMobile.disabled = false;
         updateQueueButtonsState();
+
+        // Mettre à jour le cache d'appareils appairés en arrière-plan
+        updatePairedDevicesCache();
     }
 
     function updateStatus(text, stateClass) {
@@ -957,7 +969,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnClearQueue.addEventListener('click', clearQueue);
     btnPrintBatch.addEventListener('click', printBatchQueue);
 
-    // Initialisation du device mode et de l'écran d'accueil
+    // Initialisation du device mode, de l'écran d'accueil et du cache d'appareils BLE appairés
     setDeviceMode(detectDevice());
     initHomeScreen();
+    updatePairedDevicesCache();
 });
