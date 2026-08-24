@@ -84,13 +84,13 @@
                 <h2>2. Saisie des Informations</h2>
                 <form id="labelForm" onsubmit="return false;">
                     <div class="form-group">
-                        <label for="inputDiscipline">Discipline :</label>
-                        <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: Cardiologie">
+                        <label for="inputDiscipline">Discipline (4 lettres max) :</label>
+                        <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: CARD" maxlength="4">
                     </div>
 
                     <div class="form-group">
                         <label for="inputDateEntree">Date d'entrée :</label>
-                        <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM">
+                        <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM" maxlength="5">
                     </div>
 
                     <div class="form-row">
@@ -106,7 +106,7 @@
 
                     <div class="form-group">
                         <label for="inputDateNaissance">Date de naissance :</label>
-                        <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA">
+                        <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
                     </div>
 
                     <div class="form-group">
