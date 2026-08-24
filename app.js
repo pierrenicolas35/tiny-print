@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectDensity = document.getElementById('printDensity');
     const inputInterLabelFeed = document.getElementById('interLabelFeed');
     const inputPostPrintFeed = document.getElementById('postPrintFeed');
-    const inputCustomServiceUuid = document.getElementById('inputCustomServiceUuid');
 
     // Queue UI
     const btnAddQueue = document.getElementById('btnAddQueue');
@@ -109,13 +108,19 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     // --- DESSIN DU CANVAS (384 x 240) ---
-    function renderCanvas(data = getFormData()) {
-        // Clear canvas with white background
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function renderCanvas(data = getFormData(), isForPrint = false, targetCtx = ctx, targetCanvas = canvas) {
+        targetCtx.save();
+        if (isForPrint) {
+            targetCtx.translate(targetCanvas.width, targetCanvas.height);
+            targetCtx.rotate(Math.PI);
+        }
 
-        ctx.fillStyle = '#000000';
-        ctx.textBaseline = 'top';
+        // Clear canvas with white background
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height);
+
+        targetCtx.fillStyle = '#000000';
+        targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
         // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
@@ -123,86 +128,87 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
-            ctx.save();
-            ctx.translate(22, OFFSET_Y);
-            ctx.rotate(-Math.PI / 2);
-            ctx.font = 'bold 24px Arial, sans-serif';
-            ctx.textAlign = 'right'; // Aligné en haut
-            ctx.fillText(data.discipline, 0, -10);
-            ctx.restore();
+            targetCtx.save();
+            targetCtx.translate(22, OFFSET_Y);
+            targetCtx.rotate(-Math.PI / 2);
+            targetCtx.font = 'bold 24px Arial, sans-serif';
+            targetCtx.textAlign = 'right'; // Aligné en haut
+            targetCtx.fillText(data.discipline, 0, -10);
+            targetCtx.restore();
         }
 
         // 2. Date d'entrée (verticale sur le côté droit, TOUT EN HAUT)
         if (data.dateEntree) {
-            ctx.save();
-            ctx.translate(canvas.width - 22, OFFSET_Y);
-            ctx.rotate(Math.PI / 2);
-            ctx.font = 'bold 24px Arial, sans-serif';
-            ctx.textAlign = 'left'; // Aligné en haut
-            ctx.fillText(data.dateEntree, 0, -10);
-            ctx.restore();
+            targetCtx.save();
+            targetCtx.translate(targetCanvas.width - 22, OFFSET_Y);
+            targetCtx.rotate(Math.PI / 2);
+            targetCtx.font = 'bold 24px Arial, sans-serif';
+            targetCtx.textAlign = 'left'; // Aligné en haut
+            targetCtx.fillText(data.dateEntree, 0, -10);
+            targetCtx.restore();
         }
 
         // 3. NOM (au centre, grand/gras) - Tout en haut
-        ctx.save();
-        ctx.textAlign = 'center';
+        targetCtx.save();
+        targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
         let nomFontSize = 46;
-        ctx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+        targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
-        while (ctx.measureText(nomText).width > 280 && nomFontSize > 14) {
+        while (targetCtx.measureText(nomText).width > 280 && nomFontSize > 14) {
             nomFontSize -= 2;
-            ctx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+            targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
         const nomY = OFFSET_Y; // Tout en haut
-        ctx.fillText(nomText, canvas.width / 2, nomY, 280);
+        targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
         let prenomFontSize = 36;
-        ctx.font = `${prenomFontSize}px Arial, sans-serif`;
+        targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
-        while (ctx.measureText(prenomText).width > 280 && prenomFontSize > 14) {
+        while (targetCtx.measureText(prenomText).width > 280 && prenomFontSize > 14) {
             prenomFontSize -= 2;
-            ctx.font = `${prenomFontSize}px Arial, sans-serif`;
+            targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 12;
-        ctx.fillText(prenomText, canvas.width / 2, prenomY, 280);
+        const prenomY = nomY + nomFontSize + 4;
+        targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        ctx.font = '26px Arial, sans-serif';
-        const dobY = prenomY + prenomFontSize + 12;
-        ctx.fillText(dobText, canvas.width / 2, dobY);
+        targetCtx.font = '26px Arial, sans-serif';
+        const dobY = prenomY + prenomFontSize + 8;
+        targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
-        // 6. Motif d'admission (en bas au centre, multilingne)
+        // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        ctx.font = '24px Arial, sans-serif';
-        const words = motifText.split(' ');
-        let line = '';
-        const lines = [];
-        const maxLineWidth = 280;
+        const motifY = dobY + 28;
+        let motifFontSize = 24;
+        targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
-        for (let n = 0; n < words.length; n++) {
-            const testLine = line + words[n] + ' ';
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxLineWidth && n > 0) {
-                lines.push(line);
-                line = words[n] + ' ';
-            } else {
-                line = testLine;
-            }
-        }
-        lines.push(line);
-
-        const motifY = dobY + 25;
-        for (let i = 0; i < Math.min(lines.length, 4); i++) {
-            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 24));
+        // Réduire la police si le texte est trop long
+        while (targetCtx.measureText(motifText).width > 280 && motifFontSize > 14) {
+            motifFontSize -= 1;
+            targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
         }
 
-        ctx.restore();
+        targetCtx.fillText(motifText, targetCanvas.width / 2, motifY, 280);
+
+        if (!isForPrint) {
+            targetCtx.save();
+            targetCtx.setLineDash([5, 5]);
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, targetCanvas.height - 80); // 1cm from bottom (80 pixels)
+            targetCtx.lineTo(targetCanvas.width, targetCanvas.height - 80);
+            targetCtx.strokeStyle = '#999999';
+            targetCtx.lineWidth = 2;
+            targetCtx.stroke();
+            targetCtx.restore();
+        }
+
+        targetCtx.restore();
     }
 
     function getFormData() {
@@ -517,12 +523,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus("Connexion BLE...", "connecting");
 
             const activeServices = [...BT_SERVICES];
-            if (inputCustomServiceUuid && inputCustomServiceUuid.value.trim()) {
-                const customUuid = inputCustomServiceUuid.value.trim().toLowerCase();
-                if (!activeServices.includes(customUuid)) {
-                    activeServices.unshift(customUuid);
-                }
-            }
 
             let deviceOptions = {
                 acceptAllDevices: true,
@@ -701,7 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
         offCanvas.width = 384;
         offCanvas.height = 240;
         const offCtx = offCanvas.getContext('2d');
-        offCtx.drawImage(canvas, 0, 0);
+
+        // Rendu pour l'aperçu de la file d'attente (sans rotation, isForPrint=false)
+        renderCanvas(data, false, offCtx, offCanvas);
 
         queue.push({
             id: Date.now(),
@@ -775,7 +777,15 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let i = 0; i < queue.length; i++) {
                 const isLast = (i === queue.length - 1);
                 const feedLines = isLast ? postFeed : interFeed;
-                await printCanvas(queue[i].canvas, feedLines);
+
+                // Recréer le canvas pour l'impression (rotation, pas de tirets)
+                const printCanvasEl = document.createElement('canvas');
+                printCanvasEl.width = 384;
+                printCanvasEl.height = 240;
+                const printCtx = printCanvasEl.getContext('2d');
+                renderCanvas(queue[i].data, true, printCtx, printCanvasEl);
+
+                await printCanvas(printCanvasEl, feedLines);
             }
             alert("Impression du lot terminée avec succès !");
             clearQueue();
@@ -813,7 +823,16 @@ document.addEventListener('DOMContentLoaded', () => {
     btnPrintDirect.addEventListener('click', async () => {
         try {
             const postFeed = parseInt(inputPostPrintFeed.value, 10) || 60;
-            await printCanvas(canvas, postFeed);
+
+            // Créer un canvas temporaire pour l'impression (pour appliquer isForPrint = true)
+            const printCanvasEl = document.createElement('canvas');
+            printCanvasEl.width = 384;
+            printCanvasEl.height = 240;
+            const printCtx = printCanvasEl.getContext('2d');
+            const currentData = getFormData();
+            renderCanvas(currentData, true, printCtx, printCanvasEl);
+
+            await printCanvas(printCanvasEl, postFeed);
         } catch (error) {
             alert("Erreur lors de l'impression : " + error.message);
         }
