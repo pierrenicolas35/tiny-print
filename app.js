@@ -54,7 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
     let bleNotifyCharacteristic = null;
-    let connectionType = null; // 'ble'
 
     // Liste exhaustive des services BLE utilisés par les imprimantes thermiques (GB01, Lovcoyo X6, WalkPrint, Nordic UART, Phomemo, etc.)
     const BT_SERVICES = [
@@ -292,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ENVOI DE DONNÉES (BLE) ---
     async function sendBytes(bytes) {
-        if (connectionType === 'ble' && bleWriteCharacteristic) {
+        if (bleWriteCharacteristic) {
             // Envoi via Web Bluetooth par paquets MTU
             const CHUNK_SIZE = 80; // Paquet sécurisé pour BLE
             for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
@@ -525,7 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             bleWriteCharacteristic = targetChar;
-            connectionType = 'ble';
 
             if (targetNotifyChar) {
                 bleNotifyCharacteristic = targetNotifyChar;
@@ -581,7 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bleNotifyCharacteristic) {
             bleNotifyCharacteristic = null;
         }
-        connectionType = null;
 
         const feedbackEl = document.getElementById('printerFeedback');
         if (feedbackEl) {
