@@ -117,8 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#000000';
         ctx.textBaseline = 'top';
 
-        // Décalage vertical global appliqué à tous les éléments
-        // pour éviter d'imprimer trop haut à cause de la marge matérielle de l'imprimante thermique (1cm).
+        // Décalage vertical global appliqué à tous les éléments.
+        // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
         const OFFSET_Y = 10;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
@@ -197,9 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lines.push(line);
 
-        const motifY = dobY + 38;
+        const motifY = dobY + 25;
         for (let i = 0; i < Math.min(lines.length, 4); i++) {
-            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 28));
+            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 24));
         }
 
         ctx.restore();
