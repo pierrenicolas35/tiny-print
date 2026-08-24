@@ -117,9 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#000000';
         ctx.textBaseline = 'top';
 
-        // Pour compenser le décalage de 1 cm d'écrasement matériel,
-        // l'imprimante imprime trop bas. On ajuste donc les positions Y manuellement
-        // vers le haut (offset négatif sur l'axe Y) pour compenser.
+        // Décalage vertical global appliqué à tous les éléments
+        // pour éviter d'imprimer trop haut à cause de la marge matérielle de l'imprimante thermique (1cm).
         const OFFSET_Y = 60;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
@@ -199,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lines.push(line);
 
         const motifY = dobY + 35;
-        for(let i = 0; i < Math.min(lines.length, 4); i++) {
+        for (let i = 0; i < Math.min(lines.length, 4); i++) {
             ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 20));
         }
 
