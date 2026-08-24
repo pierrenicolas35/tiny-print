@@ -122,9 +122,50 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.fillStyle = '#000000';
         targetCtx.textBaseline = 'top';
 
-        // Décalage vertical global appliqué à tous les éléments.
-        // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
-        const OFFSET_Y = 10;
+        // Détermination dynamique des tailles de police pour calculer l'OFFSET_Y depuis le bas
+        const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
+        let nomFontSize = 46;
+        targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+        while (targetCtx.measureText(nomText).width > 280 && nomFontSize > 14) {
+            nomFontSize -= 2;
+            targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+        }
+
+        const prenomText = data.prenom ? data.prenom : "Prénom";
+        let prenomFontSize = 36;
+        targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
+        while (targetCtx.measureText(prenomText).width > 280 && prenomFontSize > 14) {
+            prenomFontSize -= 2;
+            targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
+        }
+
+        const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
+        const dobFontSize = 26;
+
+        const motifText = data.motif ? data.motif : "Motif d'admission";
+        let motifFontSize = 24;
+        targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
+        while (targetCtx.measureText(motifText).width > 280 && motifFontSize > 14) {
+            motifFontSize -= 1;
+            targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
+        }
+
+        // Calcul des espacements (identique à l'original)
+        const spacingPrenom = 2;
+        const spacingDob = 4;
+        const spacingMotif = 24;
+
+        // La hauteur totale occupée par les textes
+        const totalHeight = nomFontSize + spacingPrenom + prenomFontSize + spacingDob + dobFontSize + spacingMotif + motifFontSize;
+
+        // On veut que le bas du motif touche le bas du canvas (targetCanvas.height).
+        // On laisse une marge minimale de 2 pixels pour éviter un bord coupé.
+        // Puisque le canvas fait 240px de haut, le motifY + motifFontSize = 238
+        // Donc OFFSET_Y (le nomY) = 238 - totalHeight
+        let OFFSET_Y = targetCanvas.height - 2 - totalHeight;
+
+        // Sécurité : on s'assure que l'OFFSET_Y ne remonte pas au-dessus de 0
+        if (OFFSET_Y < 0) OFFSET_Y = 0;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -151,49 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. NOM (au centre, grand/gras) - Tout en haut
         targetCtx.save();
         targetCtx.textAlign = 'center';
-        const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 46;
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
-
-        // On restreint la largeur pour laisser de la marge pour Discipline et Date
-        while (targetCtx.measureText(nomText).width > 280 && nomFontSize > 14) {
-            nomFontSize -= 2;
-            targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
-        }
         const nomY = OFFSET_Y; // Tout en haut
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
-        const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 36;
         targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
-
-        // On restreint la largeur pour laisser de la marge
-        while (targetCtx.measureText(prenomText).width > 280 && prenomFontSize > 14) {
-            prenomFontSize -= 2;
-            targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
-        }
-        const prenomY = nomY + nomFontSize + 4;
+        const prenomY = nomY + nomFontSize + spacingPrenom;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
-        const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        targetCtx.font = '26px Arial, sans-serif';
-        const dobY = prenomY + prenomFontSize + 8;
+        targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
+        const dobY = prenomY + prenomFontSize + spacingDob;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
-        const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + 28;
-        let motifFontSize = 24;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
-
-        // Réduire la police si le texte est trop long
-        while (targetCtx.measureText(motifText).width > 280 && motifFontSize > 14) {
-            motifFontSize -= 1;
-            targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
-        }
-
+        const motifY = dobY + dobFontSize + spacingMotif;
         targetCtx.fillText(motifText, targetCanvas.width / 2, motifY, 280);
 
         if (!isForPrint) {
