@@ -27,6 +27,6 @@ jobs:
         uses: rossjrw/pr-preview-action@v1
         with:
           source-dir: .
-          preview-branch: main-1858709927362588172
+          preview-branch: main
           umbrella-dir: pr-preview
           action: auto
