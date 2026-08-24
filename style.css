@@ -237,7 +237,8 @@ label {
 
 #labelCanvas {
     width: 384px;
-    height: 240px;
+    max-width: 100%;
+    height: auto;
     border: 1px solid #1e293b;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     background-color: #ffffff;
@@ -514,4 +515,42 @@ label {
     body { padding: 10px; }
     .form-row { flex-direction: column; gap: 0; }
     .canvas-wrapper { padding: 8px; }
+}
+
+/* Styling details and summary */
+.settings-details {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+}
+
+.settings-details summary {
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--primary-color);
+    list-style: none; /* Hide default arrow in some browsers */
+    display: flex;
+    align-items: center;
+}
+
+.settings-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-details summary::before {
+    content: "▶";
+    font-size: 0.8em;
+    margin-right: 8px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.settings-details[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.settings-details[open] .settings-grid {
+    margin-top: 15px;
 }

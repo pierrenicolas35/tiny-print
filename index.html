@@ -31,7 +31,10 @@
                     <button id="btnDisconnect" class="btn btn-danger" disabled>Déconnexion</button>
                 </div>
 
-                <div class="settings-grid">
+                <details class="settings-details">
+                    <summary>Options avancées d'impression</summary>
+                    <div class="settings-grid">
+
                     <div class="form-group">
                         <label for="printerProtocol">Protocole d'impression :</label>
                         <select id="printerProtocol" class="form-control">
@@ -68,11 +71,9 @@
                         <input type="number" id="postPrintFeed" class="form-control" value="30" min="0" max="300">
                     </div>
 
-                    <div class="form-group" style="grid-column: 1 / -1;">
-                        <label for="inputCustomServiceUuid">UUID Service personnalisé (optionnel) :</label>
-                        <input type="text" id="inputCustomServiceUuid" class="form-control" placeholder="ex: 6e400001-b5a3-f393-e0a9-e50e24dcca9e ou 0x18f0">
+
                     </div>
-                </div>
+                </details>
 
                 <div class="button-group">
                     <button id="btnManualFeed" class="btn btn-secondary" disabled>Avancer le papier</button>
