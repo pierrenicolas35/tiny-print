@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Chaque ligne de 384 pixels est convertie en 48 octets (384 / 8 = 48).
      * 1 bit = 1 pixel (1 pour noir/brûlé, 0 pour blanc).
      */
-    function canvasToBitmap(canvas, thresholdValue = 128) {
+    function canvasToBitmap(canvas, thresholdValue = 128, lsbFirst = false) {
         const width = canvas.width;  // 384
         const height = canvas.height; // 240
         const imgData = ctx.getImageData(0, 0, width, height).data;
@@ -208,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (isBlack) {
                     const byteIdx = y * bytesPerLine + Math.floor(x / 8);
-                    const bitIdx = 7 - (x % 8); // MSB First
+                    const bitIdx = lsbFirst ? (x % 8) : (7 - (x % 8)); // LSB or MSB First
                     bitmap[byteIdx] |= (1 << bitIdx);
                 }
             }
@@ -273,9 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getEnergyPayload(density) {
-        let energyValue = 0x00FF; // Normal
-        if (density === 'light') energyValue = 0x007F;
-        if (density === 'dark') energyValue = 0x03FF;
+        let energyValue = 12000; // Normal
+        if (density === 'light') energyValue = 8000;
+        if (density === 'dark') energyValue = 17500;
         const payload = new Uint8Array(2);
         payload[0] = energyValue & 0xFF;
         payload[1] = (energyValue >> 8) & 0xFF;
@@ -314,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const width = targetCanvas.width; // 384
         const height = targetCanvas.height; // 240
         const bytesPerLine = width / 8; // 48
-        const bitmap = canvasToBitmap(targetCanvas, thresholdVal);
+        const bitmap = canvasToBitmap(targetCanvas, thresholdVal, false);
 
         // Commande ESC/POS GS v 0 (0x1D 0x76 0x30 0x00)
         // Format: GS v 0 m xL xH yL yH data...
@@ -361,13 +361,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             // Mode Tiny Print / GB01 (Protocole Qx 0x51 0x78)
-            const bitmap = canvasToBitmap(targetCanvas, thresholdVal);
+            const bitmap = canvasToBitmap(targetCanvas, thresholdVal, true);
             const height = targetCanvas.height; // 240
             const bytesPerLine = targetCanvas.width / 8; // 48
 
-            // 1. Commande d'énergie / densité (Cmd 0xA6)
-            const energyPacket = createCmdPacket(0xA6, getEnergyPayload(density));
+            // 1. Initialisation GB01 (Qualité, Lattice, Energie, Mode)
+            const qualityPacket = createCmdPacket(0xA4, new Uint8Array([0x33]));
+            await sendBytes(qualityPacket);
+
+            const latticePayload = new Uint8Array([0xAA, 0x55, 0x17, 0x38, 0x44, 0x5F, 0x5F, 0x5F, 0x44, 0x38, 0x2C]);
+            const latticePacket = createCmdPacket(0xA6, latticePayload);
+            await sendBytes(latticePacket);
+
+            const energyPacket = createCmdPacket(0xAF, getEnergyPayload(density));
             await sendBytes(energyPacket);
+
+            const modePacket = createCmdPacket(0xBE, new Uint8Array([0x00])); // DrawingMode: 0 (Images)
+            await sendBytes(modePacket);
+
+            const otherFeedPacket = createCmdPacket(0xBD, new Uint8Array([0x23])); // ImgPrintSpeed
+            await sendBytes(otherFeedPacket);
 
             // 2. Envoi des lignes bitmap (Cmd 0xA2)
             for (let y = 0; y < height; y++) {
