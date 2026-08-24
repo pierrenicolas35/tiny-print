@@ -117,24 +117,27 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#000000';
         ctx.textBaseline = 'top';
 
-        // 1. Discipline (verticale le long du bord gauche)
+        // Pour compenser le décalage de 1 cm d'écrasement matériel,
+        // l'imprimante imprime trop bas. On ajuste donc les positions Y manuellement
+        // vers le haut (offset négatif sur l'axe Y) pour compenser.
+
+        // 1. Discipline (verticale tout en haut à gauche)
         if (data.discipline) {
             ctx.save();
-            ctx.translate(22, canvas.height / 2);
+            ctx.translate(22, 60); // Ajusté plus haut (de canvas.height / 2 à 60)
             ctx.rotate(-Math.PI / 2);
-            ctx.font = 'bold 18px Arial, sans-serif';
+            ctx.font = 'bold 20px Arial, sans-serif'; // +2 pts
             ctx.textAlign = 'center';
             ctx.fillText(data.discipline, 0, -8);
             ctx.restore();
         }
 
-        // 2. Date d'entrée (en haut à droite, format JJ/MM)
+        // 2. Date d'entrée (en haut à droite, format JJ/MM, sans "Date d'entrée")
         if (data.dateEntree) {
             ctx.save();
             ctx.textAlign = 'right';
-            ctx.font = '13px Arial, sans-serif';
-            ctx.fillText("Date d'entrée", canvas.width - 15, 12);
-            ctx.fillText(data.dateEntree, canvas.width - 15, 28);
+            ctx.font = 'bold 20px Arial, sans-serif'; // Même police que Discipline
+            ctx.fillText(data.dateEntree, canvas.width - 15, 12);
             ctx.restore();
         }
 
@@ -142,27 +145,26 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        ctx.font = 'bold 32px Arial, sans-serif';
-        ctx.fillText(nomText, canvas.width / 2 + 10, 35);
+        ctx.font = 'bold 34px Arial, sans-serif'; // +2 pts
+        ctx.fillText(nomText, canvas.width / 2, 45); // Centré en X, Y ajusté
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        ctx.font = '26px Arial, sans-serif';
-        ctx.fillText(prenomText, canvas.width / 2 + 10, 82);
+        ctx.font = '28px Arial, sans-serif'; // +2 pts
+        ctx.fillText(prenomText, canvas.width / 2, 95); // Y ajusté
 
         // 5. Date de naissance (au centre)
-        const dobText = data.dateNaissance ? `Date de naissance ${data.dateNaissance}` : "Date de naissance format JJ/MM/AAAA";
-        ctx.font = '15px Arial, sans-serif';
-        ctx.fillText(dobText, canvas.width / 2 + 10, 135);
+        const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
+        ctx.font = '18px Arial, sans-serif'; // +3 pts
+        ctx.fillText(dobText, canvas.width / 2, 145); // Y ajusté
 
         // 6. Motif d'admission (en bas au centre)
         if (data.motif) {
-            ctx.font = '13px Arial, sans-serif';
-            ctx.fillText(data.motif, canvas.width / 2 + 10, 185);
+            ctx.font = '16px Arial, sans-serif'; // +3 pts
+            ctx.fillText(data.motif, canvas.width / 2, 195); // Y ajusté
         } else {
-            ctx.font = '13px Arial, sans-serif';
-            ctx.fillText("Motif", canvas.width / 2 + 10, 180);
-            ctx.fillText("d'admission", canvas.width / 2 + 10, 196);
+            ctx.font = '16px Arial, sans-serif'; // +3 pts
+            ctx.fillText("Motif d'admission", canvas.width / 2, 195); // Y ajusté
         }
 
         ctx.restore();
@@ -178,6 +180,47 @@ document.addEventListener('DOMContentLoaded', () => {
             motif: inputMotif.value.trim()
         };
     }
+
+    // Fonction utilitaire pour formater la date en JJ/MM ou JJ/MM/AAAA
+    function formatDateInput(input, withYear = false) {
+        let value = input.value.replace(/\D/g, ''); // Garder que les chiffres
+        if (value.length > 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2);
+        }
+        if (withYear && value.length > 5) {
+            value = value.substring(0, 5) + '/' + value.substring(5, 9);
+        }
+        if (!withYear && value.length > 5) {
+            value = value.substring(0, 5); // Limiter à JJ/MM
+        }
+        input.value = value;
+    }
+
+    // Formatage automatique à la saisie
+    inputDiscipline.addEventListener('input', () => {
+        let val = inputDiscipline.value.toUpperCase();
+        if (val.length > 4) val = val.substring(0, 4);
+        inputDiscipline.value = val;
+    });
+
+    inputDateEntree.addEventListener('input', () => {
+        formatDateInput(inputDateEntree, false);
+    });
+
+    inputDateNaissance.addEventListener('input', () => {
+        formatDateInput(inputDateNaissance, true);
+    });
+
+    inputNom.addEventListener('input', () => {
+        inputNom.value = inputNom.value.toUpperCase();
+    });
+
+    inputPrenom.addEventListener('input', () => {
+        // Met en majuscule la première lettre de chaque mot/partie, en gérant les espaces et tirets
+        inputPrenom.value = inputPrenom.value.replace(/(^|[\s-])\S/g, function(match) {
+            return match.toUpperCase();
+        });
+    });
 
     // Écouteurs de formulaire pour rendu temps réel
     [inputDiscipline, inputDateEntree, inputNom, inputPrenom, inputDateNaissance, inputMotif].forEach(input => {
