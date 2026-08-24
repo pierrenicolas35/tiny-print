@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let bleDevice = null;
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
+    let bleNotifyCharacteristic = null;
     let serialPort = null;
     let serialWriter = null;
     let connectionType = null; // 'ble' ou 'serial'
@@ -464,6 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
             bleGattServer = await bleDevice.gatt.connect();
 
             let targetChar = null;
+            let targetNotifyChar = null;
             const discoveredInfo = [];
 
             let services = [];
@@ -502,6 +504,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (!targetChar && (char.properties.write || char.properties.writeWithoutResponse)) {
                             targetChar = char;
                         }
+
+                        if (!targetNotifyChar && (char.properties.notify || char.properties.indicate)) {
+                            targetNotifyChar = char;
+                        }
                     }
 
                     discoveredInfo.push(`Service ${service.uuid} :\n` + (charLogs.join('\n') || '  (aucune caractéristique)'));
@@ -522,6 +528,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bleWriteCharacteristic = targetChar;
             connectionType = 'ble';
+
+            if (targetNotifyChar) {
+                bleNotifyCharacteristic = targetNotifyChar;
+                try {
+                    await bleNotifyCharacteristic.startNotifications();
+                    bleNotifyCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
+                        const value = event.target.value;
+                        let hexString = '';
+                        for (let i = 0; i < value.byteLength; i++) {
+                            hexString += value.getUint8(i).toString(16).padStart(2, '0') + ' ';
+                        }
+                        const feedbackEl = document.getElementById('printerFeedback');
+                        if (feedbackEl) {
+                            feedbackEl.textContent = hexString.trim().toUpperCase();
+                        }
+                    });
+                } catch (e) {
+                    console.warn("Impossible d'activer les notifications pour maintenir l'imprimante éveillée :", e);
+                }
+            }
 
             // Étape 3 UX : Connecté avec succès
             setModalState('connected', bleDevice.name || "X6h-2CD2");
@@ -599,9 +625,17 @@ document.addEventListener('DOMContentLoaded', () => {
         bleDevice = null;
         bleGattServer = null;
         bleWriteCharacteristic = null;
+        if (bleNotifyCharacteristic) {
+            bleNotifyCharacteristic = null;
+        }
         serialPort = null;
         serialWriter = null;
         connectionType = null;
+
+        const feedbackEl = document.getElementById('printerFeedback');
+        if (feedbackEl) {
+            feedbackEl.textContent = "Aucune donnée";
+        }
 
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
