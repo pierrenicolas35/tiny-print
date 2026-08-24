@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalStatusText = document.getElementById('modalStatusText');
     const modalDeviceName = document.getElementById('modalDeviceName');
     const btnModalConnectBle = document.getElementById('btnModalConnectBle');
-    const btnModalConnectSerial = document.getElementById('btnModalConnectSerial');
 
     // State
     let queue = [];
@@ -55,9 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
     let bleNotifyCharacteristic = null;
-    let serialPort = null;
-    let serialWriter = null;
-    let connectionType = null; // 'ble' ou 'serial'
 
     // Liste exhaustive des services BLE utilisés par les imprimantes thermiques (GB01, Lovcoyo X6, WalkPrint, Nordic UART, Phomemo, etc.)
     const BT_SERVICES = [
@@ -293,15 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return createCmdPacket(0xA1, payload);
     }
 
-    // --- ENVOI DE DONNÉES (UNIFIÉ BLE & PORT SÉRIE / COM) ---
+    // --- ENVOI DE DONNÉES (BLE) ---
     async function sendBytes(bytes) {
-        if (connectionType === 'serial' && serialWriter) {
-            // Envoi via Web Serial (Port COM / Bluetooth SPP)
-            await serialWriter.write(bytes);
-            return;
-        }
-
-        if (connectionType === 'ble' && bleWriteCharacteristic) {
+        if (bleWriteCharacteristic) {
             // Envoi via Web Bluetooth par paquets MTU
             const CHUNK_SIZE = 80; // Paquet sécurisé pour BLE
             for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
@@ -403,8 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (state === 'idle') {
             radarPulse.style.display = 'none';
-            modalTitle.textContent = "Choix de la connexion";
-            modalStatusText.textContent = "Sélectionnez le mode de connexion souhaité :";
+            modalTitle.textContent = "Connexion à l'imprimante";
+            modalStatusText.textContent = "Cliquez sur le bouton pour vous connecter :";
         } else if (state === 'searching') {
             radarPulse.style.display = 'block';
             modalTitle.textContent = "Recherche d'imprimante en cours...";
@@ -455,7 +445,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-            bleGattServer = await bleDevice.gatt.connect();
+            // Retry logic for GATT connection to handle "Connection Error: Connection attempt failed"
+            let retries = 3;
+            while (retries > 0) {
+                try {
+                    bleGattServer = await bleDevice.gatt.connect();
+                    break;
+                } catch (err) {
+                    retries--;
+                    if (retries === 0) {
+                        throw err;
+                    }
+                    console.warn(`Erreur de connexion GATT, tentatives restantes: ${retries}. Réessai dans 500ms...`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
 
             let targetChar = null;
             let targetNotifyChar = null;
@@ -514,13 +518,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (discoveredInfo.length > 0) {
                     diagMsg += "Détails des services/caractéristiques :\n" + discoveredInfo.join('\n\n');
                 } else {
-                    diagMsg += "Conseil : Votre imprimante X6h est 'Jumelée' sous Windows. Cliquez sur le bouton 'Connexion Port COM (USB/Bluetooth SPP)' dans la fenêtre pour vous connecter directement via le port virtuel créé par Windows.";
+                    diagMsg += "Assurez-vous que l'imprimante n'est pas jumelée dans les paramètres de votre OS ou redémarrez-la.";
                 }
                 throw new Error(diagMsg);
             }
 
             bleWriteCharacteristic = targetChar;
-            connectionType = 'ble';
 
             if (targetNotifyChar) {
                 bleNotifyCharacteristic = targetNotifyChar;
@@ -562,54 +565,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- CONNEXION REPLI WEB SERIAL (PORT COM / BLUETOOTH SPP) ---
-    async function connectSerial() {
-        if (!('serial' in navigator)) {
-            alert("L'API Web Serial n'est pas supportée par ce navigateur. Utilisez Google Chrome ou Microsoft Edge.");
-            return;
-        }
-
-        try {
-            setModalState('searching', '--');
-            updateStatus("Connexion Port COM...", "connecting");
-
-            serialPort = await navigator.serial.requestPort();
-            setModalState('found', "Port Série COM");
-
-            await serialPort.open({ baudRate: 9600 });
-            serialWriter = serialPort.writable.getWriter();
-            connectionType = 'serial';
-
-            setModalState('connected', "Port COM (Prêt)");
-            updateStatus("Connecté (Port COM)", "connected");
-
-            btnConnect.disabled = true;
-            btnDisconnect.disabled = false;
-            btnManualFeed.disabled = false;
-            btnPrintDirect.disabled = false;
-            updateQueueButtonsState();
-
-            setTimeout(() => closeModal(), 1800);
-
-        } catch (error) {
-            console.error("Erreur connexion Port COM:", error);
-            alert("Échec de connexion Port COM : " + error.message);
-            updateStatus("Déconnecté", "disconnected");
-            closeModal();
-        }
-    }
-
     function disconnectPrinter() {
         if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
             bleDevice.gatt.disconnect();
-        }
-        if (serialWriter) {
-            try { serialWriter.releaseLock(); } catch(e) {}
-            serialWriter = null;
-        }
-        if (serialPort) {
-            try { serialPort.close(); } catch(e) {}
-            serialPort = null;
         }
         onDisconnected();
     }
@@ -621,9 +579,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (bleNotifyCharacteristic) {
             bleNotifyCharacteristic = null;
         }
-        serialPort = null;
-        serialWriter = null;
-        connectionType = null;
 
         const feedbackEl = document.getElementById('printerFeedback');
         if (feedbackEl) {
@@ -714,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateQueueButtonsState() {
-        const isConnected = !!bleWriteCharacteristic || !!serialWriter;
+        const isConnected = !!bleWriteCharacteristic;
         btnPrintBatch.disabled = !isConnected || queue.length === 0;
     }
 
@@ -745,7 +700,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnCloseModal.addEventListener('click', closeModal);
     btnModalConnectBle.addEventListener('click', connectBluetoothBLE);
-    btnModalConnectSerial.addEventListener('click', connectSerial);
 
     btnManualFeed.addEventListener('click', async () => {
         try {
