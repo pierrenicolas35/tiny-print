@@ -120,51 +120,87 @@ document.addEventListener('DOMContentLoaded', () => {
         // Pour compenser le décalage de 1 cm d'écrasement matériel,
         // l'imprimante imprime trop bas. On ajuste donc les positions Y manuellement
         // vers le haut (offset négatif sur l'axe Y) pour compenser.
+        const OFFSET_Y = 60;
 
-        // 1. Discipline (verticale tout en haut à gauche)
+        // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
             ctx.save();
-            ctx.translate(22, 60); // Ajusté plus haut (de canvas.height / 2 à 60)
+            ctx.translate(22, OFFSET_Y);
             ctx.rotate(-Math.PI / 2);
-            ctx.font = 'bold 20px Arial, sans-serif'; // +2 pts
-            ctx.textAlign = 'center';
+            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.textAlign = 'right'; // Aligné en haut
             ctx.fillText(data.discipline, 0, -8);
             ctx.restore();
         }
 
-        // 2. Date d'entrée (en haut à droite, format JJ/MM, sans "Date d'entrée")
+        // 2. Date d'entrée (verticale sur le côté droit, TOUT EN HAUT)
         if (data.dateEntree) {
             ctx.save();
-            ctx.textAlign = 'right';
-            ctx.font = 'bold 20px Arial, sans-serif'; // Même police que Discipline
-            ctx.fillText(data.dateEntree, canvas.width - 15, 12);
+            ctx.translate(canvas.width - 22, OFFSET_Y);
+            ctx.rotate(Math.PI / 2);
+            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.textAlign = 'left'; // Aligné en haut
+            ctx.fillText(data.dateEntree, 0, -8);
             ctx.restore();
         }
 
-        // 3. NOM (au centre, grand/gras)
+        // 3. NOM (au centre, grand/gras) - Tout en haut
         ctx.save();
         ctx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        ctx.font = 'bold 34px Arial, sans-serif'; // +2 pts
-        ctx.fillText(nomText, canvas.width / 2, 45); // Centré en X, Y ajusté
+        let nomFontSize = 34;
+        ctx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+
+        // On restreint la largeur pour laisser de la marge pour Discipline et Date
+        while (ctx.measureText(nomText).width > 280 && nomFontSize > 14) {
+            nomFontSize -= 2;
+            ctx.font = `bold ${nomFontSize}px Arial, sans-serif`;
+        }
+        const nomY = OFFSET_Y; // Tout en haut
+        ctx.fillText(nomText, canvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        ctx.font = '28px Arial, sans-serif'; // +2 pts
-        ctx.fillText(prenomText, canvas.width / 2, 95); // Y ajusté
+        let prenomFontSize = 28;
+        ctx.font = `${prenomFontSize}px Arial, sans-serif`;
 
-        // 5. Date de naissance (au centre)
+        // On restreint la largeur pour laisser de la marge
+        while (ctx.measureText(prenomText).width > 280 && prenomFontSize > 14) {
+            prenomFontSize -= 2;
+            ctx.font = `${prenomFontSize}px Arial, sans-serif`;
+        }
+        const prenomY = nomY + nomFontSize + 5;
+        ctx.fillText(prenomText, canvas.width / 2, prenomY, 280);
+
+        // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        ctx.font = '18px Arial, sans-serif'; // +3 pts
-        ctx.fillText(dobText, canvas.width / 2, 145); // Y ajusté
+        ctx.font = '18px Arial, sans-serif';
+        const dobY = prenomY + prenomFontSize + 5;
+        ctx.fillText(dobText, canvas.width / 2, dobY);
 
-        // 6. Motif d'admission (en bas au centre)
-        if (data.motif) {
-            ctx.font = '16px Arial, sans-serif'; // +3 pts
-            ctx.fillText(data.motif, canvas.width / 2, 195); // Y ajusté
-        } else {
-            ctx.font = '16px Arial, sans-serif'; // +3 pts
-            ctx.fillText("Motif d'admission", canvas.width / 2, 195); // Y ajusté
+        // 6. Motif d'admission (en bas au centre, multilingne)
+        const motifText = data.motif ? data.motif : "Motif d'admission";
+        ctx.font = '17px Arial, sans-serif';
+        const words = motifText.split(' ');
+        let line = '';
+        const lines = [];
+        const maxLineWidth = 280;
+
+        for (let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxLineWidth && n > 0) {
+                lines.push(line);
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line);
+
+        const motifY = dobY + 35;
+        for(let i = 0; i < Math.min(lines.length, 4); i++) {
+            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 20));
         }
 
         ctx.restore();
