@@ -117,18 +117,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#000000';
         ctx.textBaseline = 'top';
 
-        // Décalage vertical global appliqué à tous les éléments
-        // pour éviter d'imprimer trop haut à cause de la marge matérielle de l'imprimante thermique (1cm).
-        const OFFSET_Y = 60;
+        // Décalage vertical global appliqué à tous les éléments.
+        // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
+        const OFFSET_Y = 10;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
             ctx.save();
             ctx.translate(22, OFFSET_Y);
             ctx.rotate(-Math.PI / 2);
-            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.font = 'bold 24px Arial, sans-serif';
             ctx.textAlign = 'right'; // Aligné en haut
-            ctx.fillText(data.discipline, 0, -8);
+            ctx.fillText(data.discipline, 0, -10);
             ctx.restore();
         }
 
@@ -137,9 +137,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.translate(canvas.width - 22, OFFSET_Y);
             ctx.rotate(Math.PI / 2);
-            ctx.font = 'bold 20px Arial, sans-serif';
+            ctx.font = 'bold 24px Arial, sans-serif';
             ctx.textAlign = 'left'; // Aligné en haut
-            ctx.fillText(data.dateEntree, 0, -8);
+            ctx.fillText(data.dateEntree, 0, -10);
             ctx.restore();
         }
 
@@ -147,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 34;
+        let nomFontSize = 46;
         ctx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 28;
+        let prenomFontSize = 36;
         ctx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
@@ -168,18 +168,18 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             ctx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 5;
+        const prenomY = nomY + nomFontSize + 12;
         ctx.fillText(prenomText, canvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        ctx.font = '18px Arial, sans-serif';
-        const dobY = prenomY + prenomFontSize + 5;
+        ctx.font = '26px Arial, sans-serif';
+        const dobY = prenomY + prenomFontSize + 12;
         ctx.fillText(dobText, canvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, multilingne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        ctx.font = '17px Arial, sans-serif';
+        ctx.font = '24px Arial, sans-serif';
         const words = motifText.split(' ');
         let line = '';
         const lines = [];
@@ -197,9 +197,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lines.push(line);
 
-        const motifY = dobY + 35;
+        const motifY = dobY + 25;
         for (let i = 0; i < Math.min(lines.length, 4); i++) {
-            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 20));
+            ctx.fillText(lines[i].trim(), canvas.width / 2, motifY + (i * 24));
         }
 
         ctx.restore();
