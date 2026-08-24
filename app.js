@@ -123,8 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
-        // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
-        const OFFSET_Y = 24;
+        // Défini à 8 (1mm de marge) car on imprime sur 1.9cm (152px)
+        const OFFSET_Y = 8;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
             nomFontSize -= 2;
             targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
-        const nomY = OFFSET_Y; // Tout en haut
+        const nomY = OFFSET_Y; // Tout en haut (y=8)
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
@@ -173,18 +173,19 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 2;
+        const prenomY = nomY + nomFontSize + 4;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        targetCtx.font = '26px Arial, sans-serif';
-        const dobY = prenomY + prenomFontSize + 4;
+        const dobFontSize = 28;
+        targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
+        const dobY = prenomY + prenomFontSize + 6;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + 24;
+        const motifY = dobY + dobFontSize + 6;
         let motifFontSize = 24;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
@@ -200,7 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            targetCtx.moveTo(0, targetCanvas.height - 80); // 1cm from bottom (80 pixels)
+            // Ligne à Y = 160 (152 pixels d'impression + 8 pixels de marge = 160, soit targetCanvas.height - 80)
+            targetCtx.moveTo(0, targetCanvas.height - 80);
             targetCtx.lineTo(targetCanvas.width, targetCanvas.height - 80);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
