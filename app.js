@@ -117,9 +117,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillStyle = '#000000';
         ctx.textBaseline = 'top';
 
-        // Pour compenser le décalage de 1 cm d'écrasement matériel (~80 pixels vers le bas),
-        // on translate l'ensemble vers le bas pour le centrer/équilibrer, ou on ajuste les positions Y individuellement.
-        // On va ajuster manuellement chaque coordonnée Y.
+        // Pour compenser le décalage de 1 cm d'écrasement matériel,
+        // l'imprimante imprime trop bas. On ajuste donc les positions Y manuellement
+        // vers le haut (offset négatif sur l'axe Y) pour compenser.
 
         // 1. Discipline (verticale tout en haut à gauche)
         if (data.discipline) {
