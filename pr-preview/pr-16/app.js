@@ -209,6 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         targetCtx.restore();
+        targetCtx.restore();
     }
 
     function getFormData() {
