@@ -23,13 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.innerHTML = `
                     <form id="labelForm" onsubmit="return false;">
                         <div class="form-group">
-                            <label for="inputDiscipline">Discipline :</label>
-                            <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: Cardiologie">
+                            <label for="inputDiscipline">Discipline (max 4 car.) :</label>
+                            <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: CARD" maxlength="4" style="text-transform: uppercase;">
                         </div>
 
                         <div class="form-group">
                             <label for="inputDateEntree">Date d'entrée :</label>
-                            <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM">
+                            <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM" maxlength="5">
                         </div>
 
                         <div class="form-row">
@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <div class="form-group">
                             <label for="inputDateNaissance">Date de naissance :</label>
-                            <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA">
+                            <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
                         </div>
 
                         <div class="form-group">
@@ -55,15 +55,80 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 `;
 
+                const inputDiscipline = container.querySelector('#inputDiscipline');
+                const inputDateEntree = container.querySelector('#inputDateEntree');
+                const inputNom = container.querySelector('#inputNom');
+                const inputPrenom = container.querySelector('#inputPrenom');
+                const inputDateNaissance = container.querySelector('#inputDateNaissance');
+
+                // Helper pour formater le Prénom (première lettre de chaque mot en majuscule, y compris avec espaces ou tirets)
+                function formatPrenom(str) {
+                    return str.replace(/([a-zA-Zà-ÿÀ-Ÿ]+)/g, (match) => {
+                        return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+                    });
+                }
+
+                // Discipline : 4 car max & majuscules
+                if (inputDiscipline) {
+                    inputDiscipline.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.toUpperCase().slice(0, 4);
+                    });
+                }
+
+                // NOM : toujours en majuscules automatiquement
+                if (inputNom) {
+                    inputNom.addEventListener('input', (e) => {
+                        e.target.value = e.target.value.toUpperCase();
+                    });
+                }
+
+                // Prénom : majuscule automatique au début de chaque mot (espaces ou tirets)
+                if (inputPrenom) {
+                    inputPrenom.addEventListener('input', (e) => {
+                        const selectionStart = e.target.selectionStart;
+                        e.target.value = formatPrenom(e.target.value);
+                        try { e.target.setSelectionRange(selectionStart, selectionStart); } catch (err) {}
+                    });
+                }
+
+                // Auto-insertion du slash pour Date d'entrée (JJ/MM, ex: 2108 -> 21/08)
+                if (inputDateEntree) {
+                    inputDateEntree.addEventListener('input', (e) => {
+                        let digits = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        if (digits.length >= 3) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        } else {
+                            e.target.value = digits;
+                        }
+                    });
+                }
+
+                // Auto-insertion des slashes pour Date de naissance (JJ/MM/AAAA, ex: 16121985 -> 16/12/1985)
+                if (inputDateNaissance) {
+                    inputDateNaissance.addEventListener('input', (e) => {
+                        let digits = e.target.value.replace(/\D/g, '').slice(0, 8);
+                        if (digits.length >= 5) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+                        } else if (digits.length >= 3) {
+                            e.target.value = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+                        } else {
+                            e.target.value = digits;
+                        }
+                    });
+                }
+
                 const inputs = container.querySelectorAll('input');
                 inputs.forEach(input => input.addEventListener('input', onInputChange));
             },
             getFormData: (container) => {
+                const rawPrenom = (container.querySelector('#inputPrenom')?.value || '').trim();
+                const formattedPrenom = rawPrenom.replace(/([a-zA-Zà-ÿÀ-Ÿ]+)/g, (match) => match.charAt(0).toUpperCase() + match.slice(1).toLowerCase());
+
                 return {
-                    discipline: (container.querySelector('#inputDiscipline')?.value || '').trim(),
+                    discipline: (container.querySelector('#inputDiscipline')?.value || '').trim().toUpperCase().slice(0, 4),
                     dateEntree: (container.querySelector('#inputDateEntree')?.value || '').trim(),
-                    nom: (container.querySelector('#inputNom')?.value || '').trim(),
-                    prenom: (container.querySelector('#inputPrenom')?.value || '').trim(),
+                    nom: (container.querySelector('#inputNom')?.value || '').trim().toUpperCase(),
+                    prenom: formattedPrenom,
                     dateNaissance: (container.querySelector('#inputDateNaissance')?.value || '').trim(),
                     motif: (container.querySelector('#inputMotif')?.value || '').trim()
                 };
@@ -76,24 +141,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fillStyle = '#000000';
                 ctx.textBaseline = 'top';
 
-                // 1. Discipline (verticale le long du bord gauche)
+                // 1. Discipline (verticale tout en haut à gauche, 4 car max)
                 if (data.discipline) {
                     ctx.save();
-                    ctx.translate(22, height / 2);
+                    // Positionnement vertical tout en haut à gauche
+                    ctx.translate(22, 10);
                     ctx.rotate(-Math.PI / 2);
                     ctx.font = 'bold 18px Arial, sans-serif';
-                    ctx.textAlign = 'center';
+                    ctx.textAlign = 'right';
                     ctx.fillText(data.discipline, 0, -8);
                     ctx.restore();
                 }
 
-                // 2. Date d'entrée (en haut à droite, format JJ/MM)
+                // 2. Date d'entrée (tout en haut à droite, même police que discipline, sans mention "Date d'entrée")
                 if (data.dateEntree) {
                     ctx.save();
                     ctx.textAlign = 'right';
-                    ctx.font = '13px Arial, sans-serif';
-                    ctx.fillText("Date d'entrée", width - 15, 12);
-                    ctx.fillText(data.dateEntree, width - 15, 28);
+                    ctx.font = 'bold 18px Arial, sans-serif';
+                    ctx.fillText(data.dateEntree, width - 15, 10);
                     ctx.restore();
                 }
 
@@ -150,9 +215,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileTabs = document.getElementById('mobileTabs');
     const sectionForm = document.getElementById('sectionForm');
     const sectionPreview = document.getElementById('sectionPreview');
-    const sectionPrinter = document.getElementById('sectionPrinter');
+    const sectionPrinterGlobal = document.getElementById('sectionPrinterGlobal');
     const sectionQueue = document.getElementById('sectionQueue');
     const tabQueueCount = document.getElementById('tabQueueCount');
+
+    // Search UI Elements
+    const searchProgressContainer = document.getElementById('searchProgressContainer');
+    const searchStatusText = document.getElementById('searchStatusText');
+    const searchCountdown = document.getElementById('searchCountdown');
+
+    // Popup Feedback Elements
+    const popupOverlay = document.getElementById('printFeedbackPopup');
+    const popupSpinner = document.getElementById('popupSpinner');
+    const popupTitle = document.getElementById('popupTitle');
+    const popupMessage = document.getElementById('popupMessage');
+
+    function showPopup(title, message, isSpinning = true) {
+        if (!popupOverlay) return;
+        popupTitle.textContent = title;
+        popupMessage.textContent = message;
+        if (isSpinning) {
+            popupSpinner.style.display = 'block';
+        } else {
+            popupSpinner.style.display = 'none';
+        }
+        popupOverlay.classList.remove('hidden');
+    }
+
+    function hidePopup() {
+        if (popupOverlay) {
+            popupOverlay.classList.add('hidden');
+        }
+    }
 
     // Canvas & Context
     const canvas = document.getElementById('labelCanvas');
@@ -183,11 +277,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let isMobile = false;
     let activeTab = 'form'; // 'form' | 'preview' | 'printer'
     let queue = [];
+
+    // BLE & Serial Connection State
     let bleDevice = null;
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
+    let serialPort = null;
+    let serialWriter = null;
+    let connectionType = null; // 'ble' | 'serial' | null
 
-    // Services UUIDs connus pour les imprimantes thermiques BLE
+    // Search Timer State
+    let searchTimer = null;
+    let searchSecondsRemaining = 30;
+
+    // Services UUIDs connus pour les imprimantes thermiques BLE (X6, X6h, GB01, WalkPrint, Cat Printers, etc.)
     const BT_SERVICES = [
         '0000ff00-0000-1000-8000-00805f9b34fb',
         '0000fee7-0000-1000-8000-00805f9b34fb',
@@ -200,7 +303,28 @@ document.addEventListener('DOMContentLoaded', () => {
         '0000ff01-0000-1000-8000-00805f9b34fb',
         '000018f1-0000-1000-8000-00805f9b34fb',
         '0000ffff-0000-1000-8000-00805f9b34fb',
-        '00001101-0000-1000-8000-00805f9b34fb'
+        '00001101-0000-1000-8000-00805f9b34fb',
+        '0000ffe0-0000-1000-8000-00805f9b34fb',
+        '0000ffe1-0000-1000-8000-00805f9b34fb',
+        '00001800-0000-1000-8000-00805f9b34fb',
+        '00001801-0000-1000-8000-00805f9b34fb',
+        '0000180a-0000-1000-8000-00805f9b34fb',
+        '0000180f-0000-1000-8000-00805f9b34fb',
+        '0000ffe2-0000-1000-8000-00805f9b34fb',
+        '0000ffe3-0000-1000-8000-00805f9b34fb',
+        '0000ffe5-0000-1000-8000-00805f9b34fb'
+    ];
+
+    // Caractéristiques d'écriture connues pour les imprimantes thermiques BLE
+    const WRITE_CHAR_UUIDS = [
+        '0000ff02-0000-1000-8000-00805f9b34fb',
+        '0000ffe1-0000-1000-8000-00805f9b34fb',
+        '0000ae01-0000-1000-8000-00805f9b34fb',
+        '0000ae02-0000-1000-8000-00805f9b34fb',
+        '49535343-8841-43f4-a8d4-ecbe34729bb3',
+        '0000e725-0000-1000-8000-00805f9b34fb',
+        '0000ff01-0000-1000-8000-00805f9b34fb',
+        '000018f0-0000-1000-8000-00805f9b34fb'
     ];
 
     // --- DETECTION DU DEVICE (MOBILE VS DESKTOP) ---
@@ -224,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('mobile-mode');
             mobileTabs.classList.add('hidden');
             // Réafficher toutes les sections
-            [sectionForm, sectionPreview, sectionPrinter, sectionQueue].forEach(sec => sec.classList.remove('tab-hidden'));
+            [sectionForm, sectionPreview, sectionQueue].forEach(sec => sec.classList.remove('tab-hidden'));
         }
     }
 
@@ -240,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Visibilité des sections selon l'onglet
         sectionForm.classList.toggle('tab-hidden', activeTab !== 'form');
         sectionPreview.classList.toggle('tab-hidden', activeTab !== 'preview');
-        sectionPrinter.classList.toggle('tab-hidden', activeTab !== 'printer');
         sectionQueue.classList.toggle('tab-hidden', activeTab !== 'printer');
     }
 
@@ -258,16 +381,35 @@ document.addEventListener('DOMContentLoaded', () => {
     function initHomeScreen() {
         printTypesGrid.innerHTML = '';
         PRINT_TYPES.forEach(type => {
-            const card = document.createElement('div');
+            const card = document.createElement('button');
+            card.type = 'button';
             card.className = 'print-type-card';
-            card.innerHTML = `
-                <div class="print-type-icon">${type.icon}</div>
-                <div class="print-type-content">
-                    <h3>${type.title}</h3>
-                    <p>${type.description}</p>
-                </div>
-                <button class="btn btn-primary btn-small">Sélectionner &rarr;</button>
-            `;
+
+            const icon = document.createElement('span');
+            icon.className = 'print-type-icon';
+            icon.textContent = type.icon;
+
+            const content = document.createElement('span');
+            content.className = 'print-type-content';
+
+            const title = document.createElement('span');
+            title.className = 'print-type-title';
+            title.textContent = type.title;
+
+            const description = document.createElement('span');
+            description.className = 'print-type-description';
+            description.textContent = type.description;
+
+            const cta = document.createElement('span');
+            cta.className = 'btn btn-primary btn-small';
+            cta.textContent = 'Sélectionner →';
+            cta.setAttribute('aria-hidden', 'true');
+
+            content.appendChild(title);
+            content.appendChild(description);
+            card.appendChild(icon);
+            card.appendChild(content);
+            card.appendChild(cta);
             card.addEventListener('click', () => selectPrintType(type));
             printTypesGrid.appendChild(card);
         });
@@ -395,121 +537,252 @@ document.addEventListener('DOMContentLoaded', () => {
         return createCmdPacket(0xA1, payload);
     }
 
-    // --- ENVOI BLE PAR CHUNKS ---
-    async function sendBytes(bytes) {
-        if (!bleWriteCharacteristic) {
-            throw new Error("Imprimante non connectée.");
+    // --- GESTION DE LA RECHERCHE ET DU COMPTE À REBOURS (30s) ---
+    function startSearchUI(label = "Recherche de l'imprimante...") {
+        stopSearchUI();
+        searchSecondsRemaining = 30;
+        searchStatusText.textContent = label;
+        searchCountdown.textContent = `${searchSecondsRemaining}s`;
+        searchProgressContainer.classList.remove('hidden');
+
+        searchTimer = setInterval(() => {
+            searchSecondsRemaining--;
+            if (searchSecondsRemaining >= 0) {
+                searchCountdown.textContent = `${searchSecondsRemaining}s`;
+            } else {
+                stopSearchUI();
+            }
+        }, 1000);
+    }
+
+    function stopSearchUI() {
+        if (searchTimer) {
+            clearInterval(searchTimer);
+            searchTimer = null;
+        }
+        searchProgressContainer.classList.add('hidden');
+    }
+
+    // --- RECONNEXION AUTOMATIQUE TRANSPARENTE ET VERROU SÉQUENTIEL (ANDROID/LINUX) ---
+    let bleWriteQueue = Promise.resolve();
+
+    async function findWriteCharacteristic(gattServer) {
+        let targetChar = null;
+        let services = [];
+
+        try {
+            services = await gattServer.getPrimaryServices();
+        } catch (e) {
+            console.warn("getPrimaryServices() global a échoué, tentative par UUIDs...", e);
         }
 
-        const CHUNK_SIZE = 80;
-        for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-            const chunk = bytes.slice(i, i + CHUNK_SIZE);
-            if (bleWriteCharacteristic.properties.writeWithoutResponse) {
-                await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
-            } else {
-                await bleWriteCharacteristic.writeValue(chunk);
+        if (!services || services.length === 0) {
+            for (const serviceUuid of BT_SERVICES) {
+                try {
+                    const service = await gattServer.getPrimaryService(serviceUuid);
+                    if (service) services.push(service);
+                } catch (e) {}
             }
-            await new Promise(resolve => setTimeout(resolve, 15));
         }
+
+        // 1. Découverte standard via getCharacteristics()
+        for (const service of services) {
+            try {
+                const characteristics = await service.getCharacteristics();
+                for (const char of characteristics) {
+                    if (char.properties.write || char.properties.writeWithoutResponse) {
+                        targetChar = char;
+                        break;
+                    }
+                }
+                if (targetChar) break;
+            } catch (e) {}
+        }
+
+        // 2. Repli direct par getCharacteristic() sur UUIDs connus si la découverte globale a été restreinte (Linux / Android)
+        if (!targetChar) {
+            for (const service of services) {
+                for (const charUuid of WRITE_CHAR_UUIDS) {
+                    try {
+                        const char = await service.getCharacteristic(charUuid);
+                        if (char && (char.properties.write || char.properties.writeWithoutResponse)) {
+                            targetChar = char;
+                            break;
+                        }
+                    } catch (e) {}
+                }
+                if (targetChar) break;
+            }
+        }
+
+        return targetChar;
+    }
+
+    async function ensureConnected() {
+        if (!bleDevice) {
+            throw new Error("Aucune imprimante sélectionnée. Veuillez cliquer sur 'Connexion Imprimante'.");
+        }
+
+        // Si le serveur GATT s'est déconnecté (fréquent sous Android/Linux)
+        if (!bleGattServer || !bleGattServer.connected) {
+            showPopup("🔄 Reconnexion...", "Reconnexion à l'imprimante Bluetooth en cours...", true);
+            updateStatus("Reconnexion...", "connecting");
+
+            let retries = 3;
+            bleGattServer = null;
+            while (retries > 0 && (!bleGattServer || !bleGattServer.connected)) {
+                try {
+                    bleGattServer = await bleDevice.gatt.connect();
+                } catch (err) {
+                    retries--;
+                    if (retries === 0) throw new Error("Échec de la reconnexion GATT : " + err.message);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
+
+            const char = await findWriteCharacteristic(bleGattServer);
+            if (!char) {
+                throw new Error("Impossible de retrouver la caractéristique d'écriture après reconnexion.");
+            }
+            bleWriteCharacteristic = char;
+            updateStatus("Connecté (Bluetooth)", "connected");
+        }
+    }
+
+    async function sendBytes(bytes) {
+        // Résolution douce de la queue pour ne pas bloquer les envois futurs en cas d'échec
+        bleWriteQueue = bleWriteQueue.catch(() => {}).then(async () => {
+            await ensureConnected();
+
+            const CHUNK_SIZE = 60; // MTU sécurisé pour Android / Linux
+            const useWithoutResponse = bleWriteCharacteristic.properties.writeWithoutResponse;
+
+            for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+                const chunk = bytes.slice(i, i + CHUNK_SIZE);
+
+                let chunkSent = false;
+                let attempts = 0;
+
+                while (!chunkSent && attempts < 3) {
+                    try {
+                        await ensureConnected();
+                        if (useWithoutResponse) {
+                            await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
+                        } else {
+                            await bleWriteCharacteristic.writeValue(chunk);
+                        }
+                        chunkSent = true;
+                    } catch (err) {
+                        attempts++;
+                        console.warn(`Tentative ${attempts}/3 d'envoi du paquet échouée:`, err);
+                        // Forcer l'invalidation du serveur GATT pour déclencher reconnect au prochain essai
+                        if (bleGattServer) {
+                            try { bleGattServer.disconnect(); } catch (e) {}
+                        }
+                        bleGattServer = null;
+                        if (attempts >= 3) throw err;
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                }
+
+                // Temporisation pacing
+                await new Promise(resolve => setTimeout(resolve, 25));
+            }
+        });
+
+        return bleWriteQueue;
     }
 
     // --- IMPRESSION D'UN CANVAS ---
     async function printCanvas(targetCanvas, interFeedLines = 0) {
         updateStatus("Impression...", "printing");
+        showPopup("🖨️ Impression en cours...", "Envoi des données d'impression vers l'imprimante...", true);
 
-        const density = selectDensity.value;
-        const bitmap = canvasToBitmap(targetCanvas);
-        const height = targetCanvas.height;
-        const bytesPerLine = targetCanvas.width / 8;
+        try {
+            const density = selectDensity.value;
+            const bitmap = canvasToBitmap(targetCanvas);
+            const height = targetCanvas.height;
+            const bytesPerLine = targetCanvas.width / 8;
 
-        const energyPacket = createCmdPacket(0xA6, getEnergyPayload(density));
-        await sendBytes(energyPacket);
+            const energyPacket = createCmdPacket(0xA6, getEnergyPayload(density));
+            await sendBytes(energyPacket);
 
-        for (let y = 0; y < height; y++) {
-            const rowData = bitmap.slice(y * bytesPerLine, (y + 1) * bytesPerLine);
-            const rowPacket = createCmdPacket(0xA2, rowData);
-            await sendBytes(rowPacket);
+            for (let y = 0; y < height; y++) {
+                const rowData = bitmap.slice(y * bytesPerLine, (y + 1) * bytesPerLine);
+                const rowPacket = createCmdPacket(0xA2, rowData);
+                await sendBytes(rowPacket);
+            }
+
+            if (interFeedLines > 0) {
+                const feedPacket = createFeedPacket(interFeedLines);
+                await sendBytes(feedPacket);
+            }
+
+            showPopup("✅ Impression terminée", "L'étiquette a été envoyée avec succès !", false);
+            setTimeout(() => hidePopup(), 1800);
+            updateStatus("Connecté (Bluetooth)", "connected");
+
+        } catch (error) {
+            hidePopup();
+            updateStatus("Connecté (Bluetooth)", "connected");
+            throw error;
         }
-
-        if (interFeedLines > 0) {
-            const feedPacket = createFeedPacket(interFeedLines);
-            await sendBytes(feedPacket);
-        }
-
-        updateStatus("Connecté", "connected");
     }
 
     // --- WEB BLUETOOTH MANAGEMENT ---
     async function connectBluetooth() {
+        // Vérification explicite de la disponibilité du Web Bluetooth
+        if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== 'function') {
+            const isLinux = /Linux/i.test(navigator.userAgent) && !/Android/i.test(navigator.userAgent);
+            let msg = "L'API Web Bluetooth n'est pas activée ou pas supportée sur votre navigateur actuel.\n\n";
+            if (isLinux) {
+                msg += "Sous Linux (Linux Mint, Ubuntu, etc.) :\n" +
+                       "1. Utilisez Google Chrome ou Microsoft Edge.\n" +
+                       "2. Ouvrez l'adresse chrome://flags/#enable-web-bluetooth dans votre navigateur.\n" +
+                       "3. Activez le flag 'Experimental Web Platform features' ou 'Web Bluetooth'.\n" +
+                       "4. Redémarrez le navigateur.";
+            } else {
+                msg += "Veuillez utiliser Google Chrome, Microsoft Edge ou Opera sur votre PC ou smartphone Android.";
+            }
+            alert(msg);
+            return;
+        }
+
         try {
-            updateStatus("Connexion...", "connecting");
+            updateStatus("Recherche...", "connecting");
+            startSearchUI("Recherche Bluetooth...");
 
             bleDevice = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
                 optionalServices: BT_SERVICES
             });
 
+            searchStatusText.textContent = "Connexion GATT et analyse des services...";
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
-            bleGattServer = await bleDevice.gatt.connect();
-
-            let targetChar = null;
-            const discoveredInfo = [];
-
-            let services = [];
-            try {
-                services = await bleGattServer.getPrimaryServices();
-            } catch (e) {
-                console.warn("getPrimaryServices() non supporté ou a échoué, repli sur UUIDs.", e);
-            }
-
-            if (!services || services.length === 0) {
-                for (const serviceUuid of BT_SERVICES) {
-                    try {
-                        const service = await bleGattServer.getPrimaryService(serviceUuid);
-                        if (service) services.push(service);
-                    } catch (e) {}
-                }
-            }
-
-            for (const service of services) {
+            // Connexion au serveur GATT avec retry si nécessaire (très utile sur Android)
+            let retries = 3;
+            bleGattServer = null;
+            while (retries > 0 && !bleGattServer) {
                 try {
-                    const characteristics = await service.getCharacteristics();
-                    const charLogs = [];
-
-                    for (const char of characteristics) {
-                        const props = [];
-                        if (char.properties.write) props.push("write");
-                        if (char.properties.writeWithoutResponse) props.push("writeWithoutResponse");
-                        if (char.properties.read) props.push("read");
-                        if (char.properties.notify) props.push("notify");
-                        if (char.properties.indicate) props.push("indicate");
-
-                        charLogs.push(`- Caractéristique: ${char.uuid} [${props.join(', ') || 'aucune'}]`);
-
-                        if (!targetChar && (char.properties.write || char.properties.writeWithoutResponse)) {
-                            targetChar = char;
-                        }
-                    }
-
-                    discoveredInfo.push(`Service ${service.uuid} :\n` + (charLogs.join('\n') || '  (aucune caractéristique)'));
-                } catch (e) {
-                    discoveredInfo.push(`Service ${service.uuid} : impossible de lire les caractéristiques (${e.message})`);
+                    bleGattServer = await bleDevice.gatt.connect();
+                } catch (err) {
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(r => setTimeout(r, 500));
                 }
             }
+
+            const targetChar = await findWriteCharacteristic(bleGattServer);
 
             if (!targetChar) {
-                let diagMsg = "Impossible de trouver une caractéristique d'écriture compatible sur cet appareil.\n\n";
-                if (discoveredInfo.length > 0) {
-                    diagMsg += "Détails des services/caractéristiques détectés :\n" + discoveredInfo.join('\n\n');
-                } else {
-                    diagMsg += "Aucun service primaire n'a pu être inspecté sur cet appareil.";
-                }
-                throw new Error(diagMsg);
+                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur cet appareil Android/Bluetooth.\nVérifiez que l'imprimante est allumée et non appairée à une autre application.");
             }
 
             bleWriteCharacteristic = targetChar;
-            updateStatus("Connecté", "connected");
+            connectionType = 'ble';
+            updateStatus("Connecté (Bluetooth)", "connected");
+
             btnConnect.disabled = true;
             btnDisconnect.disabled = false;
             btnManualFeed.disabled = false;
@@ -519,22 +792,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Erreur de connexion BLE:", error);
-            alert("Échec de connexion Bluetooth : " + error.message);
+            if (error.name !== 'NotFoundError') {
+                alert("Échec de recherche/connexion Bluetooth : " + error.message);
+            }
             updateStatus("Déconnecté", "disconnected");
+        } finally {
+            stopSearchUI();
         }
     }
 
-    function disconnectBluetooth() {
-        if (bleDevice && bleDevice.gatt.connected) {
-            bleDevice.gatt.disconnect();
+    async function disconnectBluetooth() {
+        stopSearchUI();
+        if (connectionType === 'ble' && bleDevice && bleDevice.gatt.connected) {
+            try { bleDevice.gatt.disconnect(); } catch (e) {}
         }
         onDisconnected();
     }
 
     function onDisconnected() {
+        stopSearchUI();
         bleDevice = null;
         bleGattServer = null;
         bleWriteCharacteristic = null;
+        connectionType = null;
+
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
         btnDisconnect.disabled = true;

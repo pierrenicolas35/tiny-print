@@ -19,17 +19,75 @@
         </div>
     </header>
 
+    <!-- BARRE GLOBALE DE CONNEXION DE L'IMPRIMANTE (ACCESSIBLE SUR ACCUEIL & EN IMPRESSION) -->
+    <div class="view-container">
+        <section class="card printer-global-card" id="sectionPrinterGlobal">
+            <div class="printer-card-header">
+                <h2>🖨️ Connexion Imprimante Bluetooth</h2>
+                <div class="status-container">
+                    <span class="status-label">Statut :</span>
+                    <span id="bluetoothStatus" class="status-badge status-disconnected">Déconnecté</span>
+                </div>
+            </div>
+
+            <!-- Animation et Décompte de Recherche -->
+            <div id="searchProgressContainer" class="search-progress-container hidden">
+                <div class="search-spinner"></div>
+                <div class="search-text-info">
+                    <span id="searchStatusText">Recherche du périphérique en cours...</span>
+                    <span id="searchCountdown" class="search-countdown">30s</span>
+                </div>
+            </div>
+
+            <div class="button-group printer-connect-group">
+                <button id="btnConnect" class="btn btn-primary btn-large-connect">
+                    <span>📡 Connexion Imprimante Bluetooth</span>
+                </button>
+                <button id="btnDisconnect" class="btn btn-danger" disabled>Déconnexion</button>
+            </div>
+
+            <!-- Paramètres d'impression dépliables / Réglages -->
+            <details class="settings-accordion">
+                <summary class="settings-summary">⚙️ Réglages avancés d'impression (Densité & Avance)</summary>
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label for="printDensity">Densité d'impression :</label>
+                        <select id="printDensity" class="form-control">
+                            <option value="light">Faible</option>
+                            <option value="normal" selected>Normale</option>
+                            <option value="dark">Intense</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="interLabelFeed">Espace inter-étiquettes (lignes) :</label>
+                        <input type="number" id="interLabelFeed" class="form-control" value="20" min="0" max="200">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="postPrintFeed">Avance papier finale (lignes) :</label>
+                        <input type="number" id="postPrintFeed" class="form-control" value="60" min="0" max="300">
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="btnManualFeed" class="btn btn-secondary" disabled>Avancer le papier</button>
+                </div>
+            </details>
+        </section>
+    </div>
+
     <!-- VUE 1 : Menu d'accueil (Sélection du type d'impression) -->
-    <main id="homeView" class="view-container">
+    <section id="homeView" class="view-container">
         <div class="welcome-card card">
-            <h2>Sélectionnez un type d'impression</h2>
-            <p class="welcome-text">Choisissez le modèle d'étiquette que vous souhaitez créer et imprimer :</p>
+            <h2>Sélectionnez un modèle d'étiquette</h2>
+            <p class="welcome-text">Connectez votre imprimante ci-dessus puis choisissez votre modèle :</p>
 
             <div class="print-types-grid" id="printTypesGrid">
-                <!-- Les types d'impression seront générés dynamiquement par JS -->
+                <!-- Les types d'impression seront générés dynamiquement par JS avec des grands boutons UX -->
             </div>
         </div>
-    </main>
+    </section>
 
     <!-- VUE 2 : Application d'impression -->
     <div id="printView" class="view-container hidden">
@@ -48,53 +106,15 @@
         <nav id="mobileTabs" class="mobile-tabs hidden">
             <button class="tab-btn active" data-tab="form">📝 Saisie</button>
             <button class="tab-btn" data-tab="preview">👁️ Aperçu & Imp.</button>
-            <button class="tab-btn" data-tab="printer">🖨️ File & Imprimante (<span id="tabQueueCount">0</span>)</button>
+            <button class="tab-btn" data-tab="printer">🖨️ File d'attente (<span id="tabQueueCount">0</span>)</button>
         </nav>
 
         <main class="app-container" id="appContainer">
             <!-- Colonne Gauche (PC) / Contenu Onglets (Mobile) -->
             <div class="column" id="colLeft">
-                <!-- Section 1 : Bluetooth & Réglages Imprimante -->
-                <section class="card" id="sectionPrinter">
-                    <h2>1. Imprimante Bluetooth (BLE)</h2>
-                    <div class="status-container">
-                        <span class="status-label">Statut :</span>
-                        <span id="bluetoothStatus" class="status-badge status-disconnected">Déconnecté</span>
-                    </div>
-                    <div class="button-group">
-                        <button id="btnConnect" class="btn btn-primary">Connexion Imprimante</button>
-                        <button id="btnDisconnect" class="btn btn-danger" disabled>Déconnexion</button>
-                    </div>
-
-                    <div class="settings-grid">
-                        <div class="form-group">
-                            <label for="printDensity">Densité d'impression :</label>
-                            <select id="printDensity" class="form-control">
-                                <option value="light">Faible</option>
-                                <option value="normal" selected>Normale</option>
-                                <option value="dark">Intense</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="interLabelFeed">Espace inter-étiquettes (lignes) :</label>
-                            <input type="number" id="interLabelFeed" class="form-control" value="20" min="0" max="200">
-                        </div>
-
-                        <div class="form-group">
-                            <label for="postPrintFeed">Avance papier finale (lignes) :</label>
-                            <input type="number" id="postPrintFeed" class="form-control" value="60" min="0" max="300">
-                        </div>
-                    </div>
-
-                    <div class="button-group">
-                        <button id="btnManualFeed" class="btn btn-secondary" disabled>Avancer le papier</button>
-                    </div>
-                </section>
-
-                <!-- Section 2 : Formulaire de saisie dynamique -->
+                <!-- Section : Formulaire de saisie dynamique -->
                 <section class="card" id="sectionForm">
-                    <h2>2. Saisie des Informations</h2>
+                    <h2>1. Saisie des Informations</h2>
                     <div id="dynamicFormContainer">
                         <!-- Généré selon le type d'impression choisi -->
                     </div>
@@ -134,6 +154,15 @@
                 </section>
             </div>
         </main>
+    </div>
+
+    <!-- POPUP FEEDBACK IMPRESSION ET RECONNEXION -->
+    <div id="printFeedbackPopup" class="popup-overlay hidden">
+        <div class="popup-card">
+            <div id="popupSpinner" class="popup-spinner"></div>
+            <h3 id="popupTitle">Impression en cours...</h3>
+            <p id="popupMessage">Envoi des données vers l'imprimante...</p>
+        </div>
     </div>
 
     <footer class="app-footer">

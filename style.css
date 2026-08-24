@@ -112,6 +112,9 @@ body {
     gap: 12px;
     cursor: pointer;
     transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    text-align: left;
+    font: inherit;
 }
 
 .print-type-card:hover {
@@ -124,14 +127,20 @@ body {
     font-size: 2.2rem;
 }
 
-.print-type-content h3 {
+.print-type-content {
+    display: block;
+}
+
+.print-type-title {
     font-size: 1.15rem;
+    display: block;
     margin-bottom: 6px;
     color: var(--text-color);
 }
 
-.print-type-content p {
+.print-type-description {
     font-size: 0.88rem;
+    display: block;
     color: var(--text-muted);
 }
 
@@ -227,12 +236,164 @@ body {
     color: var(--text-color);
 }
 
+/* Global Printer Section Styling */
+.printer-global-card {
+    margin-bottom: 20px;
+    border-top: 4px solid var(--primary-color);
+}
+
+.printer-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.printer-card-header h2 {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.btn-large-connect {
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    flex: 1 1 200px;
+}
+
+.printer-connect-group {
+    margin-bottom: 12px;
+}
+
+/* Search Animation & Countdown */
+.search-progress-container {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+}
+
+.search-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #93c5fd;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.search-text-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.search-countdown {
+    background: #1e40af;
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+/* Popup Overlay Feedback */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.popup-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 28px 36px;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+    max-width: 380px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.popup-card h3 {
+    font-size: 1.2rem;
+    color: var(--text-color);
+}
+
+.popup-card p {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.popup-spinner {
+    width: 36px;
+    height: 36px;
+    border: 4px solid #bfdbfe;
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Settings Accordion */
+.settings-accordion {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-top: 8px;
+}
+
+.settings-summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    user-select: none;
+}
+
+.settings-summary:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.settings-accordion[open] .settings-summary {
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
 /* Bluetooth Status */
 .status-container {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 16px;
 }
 
 .status-label {
