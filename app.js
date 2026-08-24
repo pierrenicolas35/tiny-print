@@ -619,33 +619,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function ensureConnected() {
-        if (!bleDevice) {
-            throw new Error("Aucune imprimante sélectionnée. Veuillez cliquer sur 'Connexion Imprimante'.");
-        }
-
-        // Si le serveur GATT s'est déconnecté (fréquent sous Android/Linux)
-        if (!bleGattServer || !bleGattServer.connected) {
-            showPopup("🔄 Reconnexion...", "Reconnexion à l'imprimante Bluetooth en cours...", true);
-            updateStatus("Reconnexion...", "connecting");
-
-            let retries = 3;
-            bleGattServer = null;
-            while (retries > 0 && (!bleGattServer || !bleGattServer.connected)) {
-                try {
-                    bleGattServer = await bleDevice.gatt.connect();
-                } catch (err) {
-                    retries--;
-                    if (retries === 0) throw new Error("Échec de la reconnexion GATT : " + err.message);
-                    await new Promise(r => setTimeout(r, 500));
-                }
+        if (!bleDevice || !bleGattServer || !bleGattServer.connected) {
+            showPopup("🔍 Connexion à X6h-2CD2...", "Recherche et connexion à l'imprimante X6h-2CD2...", true);
+            const connected = await connectBluetooth();
+            if (!connected || !bleDevice || !bleGattServer || !bleGattServer.connected) {
+                throw new Error("Impossible de se connecter à l'imprimante X6h-2CD2.");
             }
-
-            const char = await findWriteCharacteristic(bleGattServer);
-            if (!char) {
-                throw new Error("Impossible de retrouver la caractéristique d'écriture après reconnexion.");
-            }
-            bleWriteCharacteristic = char;
-            updateStatus("Connecté (Bluetooth)", "connected");
         }
     }
 
@@ -745,19 +724,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 msg += "Veuillez utiliser Google Chrome, Microsoft Edge ou Opera sur votre PC ou smartphone Android.";
             }
             alert(msg);
-            return;
+            return false;
         }
 
         try {
             updateStatus("Recherche...", "connecting");
-            startSearchUI("Recherche Bluetooth...");
+            startSearchUI("Recherche de X6h-2CD2...");
 
-            bleDevice = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: BT_SERVICES
-            });
+            // 1. Tenter une reconnexion transparente si un appareil X6h-2CD2 a déjà été autorisé
+            let deviceToConnect = null;
+            if (typeof navigator.bluetooth.getDevices === 'function') {
+                try {
+                    const pairedDevices = await navigator.bluetooth.getDevices();
+                    deviceToConnect = pairedDevices.find(d => d.name === 'X6h-2CD2' || (d.name && d.name.startsWith('X6h-2CD2')));
+                } catch (e) {
+                    console.warn("getDevices() a échoué, passage à requestDevice", e);
+                }
+            }
 
-            searchStatusText.textContent = "Connexion GATT et analyse des services...";
+            // 2. Si pas d'appareil préalablement autorisé trouvé, ouvrir la boite de dialogue filtrée sur X6h-2CD2
+            if (!deviceToConnect) {
+                deviceToConnect = await navigator.bluetooth.requestDevice({
+                    filters: [
+                        { name: 'X6h-2CD2' },
+                        { namePrefix: 'X6h-2CD2' }
+                    ],
+                    optionalServices: BT_SERVICES
+                });
+            }
+
+            bleDevice = deviceToConnect;
+            searchStatusText.textContent = "Connexion à X6h-2CD2 en cours...";
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
             // Connexion au serveur GATT avec retry si nécessaire (très utile sur Android)
@@ -776,12 +773,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const targetChar = await findWriteCharacteristic(bleGattServer);
 
             if (!targetChar) {
-                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur cet appareil Android/Bluetooth.\nVérifiez que l'imprimante est allumée et non appairée à une autre application.");
+                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur l'imprimante X6h-2CD2.\nVérifiez qu'elle est allumée et non connectée à une autre application.");
             }
 
             bleWriteCharacteristic = targetChar;
             connectionType = 'ble';
-            updateStatus("Connecté (Bluetooth)", "connected");
+            updateStatus("Connecté (X6h-2CD2)", "connected");
 
             btnConnect.disabled = true;
             btnDisconnect.disabled = false;
@@ -790,12 +787,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnPrintDirectMobile.disabled = false;
             updateQueueButtonsState();
 
+            return true;
+
         } catch (error) {
             console.error("Erreur de connexion BLE:", error);
             if (error.name !== 'NotFoundError') {
-                alert("Échec de recherche/connexion Bluetooth : " + error.message);
+                alert("Échec de recherche/connexion à X6h-2CD2 : " + error.message);
             }
             updateStatus("Déconnecté", "disconnected");
+            return false;
         } finally {
             stopSearchUI();
         }
@@ -820,8 +820,8 @@ document.addEventListener('DOMContentLoaded', () => {
         btnConnect.disabled = false;
         btnDisconnect.disabled = true;
         btnManualFeed.disabled = true;
-        btnPrintDirect.disabled = true;
-        btnPrintDirectMobile.disabled = true;
+        btnPrintDirect.disabled = false;
+        btnPrintDirectMobile.disabled = false;
         updateQueueButtonsState();
     }
 
@@ -901,8 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateQueueButtonsState() {
-        const isConnected = !!bleWriteCharacteristic;
-        btnPrintBatch.disabled = !isConnected || queue.length === 0;
+        btnPrintBatch.disabled = queue.length === 0;
     }
 
     // --- IMPRESSION PAR LOT (BATCH) ---
