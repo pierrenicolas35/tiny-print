@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Décalage vertical global appliqué à tous les éléments.
         // Réduit à 10 pour utiliser plus d'espace et compenser l'avance matérielle.
-        const OFFSET_Y = 10;
+        const OFFSET_Y = 24;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -173,18 +173,18 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 4;
+        const prenomY = nomY + nomFontSize + 2;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
         targetCtx.font = '26px Arial, sans-serif';
-        const dobY = prenomY + prenomFontSize + 8;
+        const dobY = prenomY + prenomFontSize + 4;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + 28;
+        const motifY = dobY + 24;
         let motifFontSize = 24;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
