@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function canvasToBitmap(canvas, thresholdValue = 128, lsbFirst = false) {
         const width = canvas.width;  // 384
         const height = canvas.height; // 240
-        const imgData = ctx.getImageData(0, 0, width, height).data;
+        const imgData = canvas.getContext('2d').getImageData(0, 0, width, height).data;
         const bytesPerLine = width / 8; // 48
         const bitmap = new Uint8Array(bytesPerLine * height);
 
