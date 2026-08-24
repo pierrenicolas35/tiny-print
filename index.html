@@ -29,7 +29,24 @@
 
                 <div class="settings-grid">
                     <div class="form-group">
-                        <label for="printDensity">Densité d'impression :</label>
+                        <label for="printerProtocol">Protocole d'impression :</label>
+                        <select id="printerProtocol" class="form-control">
+                            <option value="escpos" selected>ESC/POS Raster (X6 / WalkPrint / Lovcoyo)</option>
+                            <option value="gb01">Tiny Print / GB01 (Protocole Qx)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="printThreshold">Seuil de Noir (Netteté) :</label>
+                        <select id="printThreshold" class="form-control">
+                            <option value="160">Contraste Élevé (Net)</option>
+                            <option value="128" selected>Standard (128)</option>
+                            <option value="100">Foncé (100)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="printDensity">Densité / Énergie :</label>
                         <select id="printDensity" class="form-control">
                             <option value="light">Faible</option>
                             <option value="normal" selected>Normale</option>
@@ -45,6 +62,11 @@
                     <div class="form-group">
                         <label for="postPrintFeed">Avance papier finale (lignes) :</label>
                         <input type="number" id="postPrintFeed" class="form-control" value="60" min="0" max="300">
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="inputCustomServiceUuid">UUID Service personnalisé (optionnel) :</label>
+                        <input type="text" id="inputCustomServiceUuid" class="form-control" placeholder="ex: 6e400001-b5a3-f393-e0a9-e50e24dcca9e ou 0x18f0">
                     </div>
                 </div>
 
@@ -126,6 +148,48 @@
     <footer class="app-footer">
         <p>Application statique autonome &bull; Fonctionne 100% hors-ligne dans votre navigateur &bull; Protocole GB01 / Tiny Print</p>
     </footer>
+
+    <!-- Modal Pop-up de Connexion Android UX -->
+    <div id="connectionModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="btnCloseModal" class="modal-close">&times;</button>
+            <h3 id="modalTitle">Recherche de l'imprimante...</h3>
+
+            <div class="printer-illustration-container">
+                <div class="radar-pulse" id="radarPulse"></div>
+                <div class="printer-miniature-wrapper" id="printerMiniatureWrapper">
+                    <!-- SVG de l'imprimante thermique miniature -->
+                    <svg class="printer-svg" id="printerSvg" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Corps de l'imprimante -->
+                        <rect x="15" y="35" width="90" height="70" rx="16" ry="16" class="printer-body"/>
+                        <!-- Fente papier -->
+                        <rect x="25" y="45" width="70" height="6" rx="3" class="printer-slot"/>
+                        <!-- Étiquette/Papier sortant -->
+                        <rect x="35" y="20" width="50" height="28" rx="2" class="printer-paper"/>
+                        <!-- Lignes de texte sur papier -->
+                        <line x1="42" y1="26" x2="78" y2="26" class="paper-line"/>
+                        <line x1="42" y1="32" x2="68" y2="32" class="paper-line"/>
+                        <line x1="42" y1="38" x2="74" y2="38" class="paper-line"/>
+                        <!-- Bouton d'alimentation -->
+                        <circle cx="90" cy="85" r="7" class="printer-btn"/>
+                        <!-- Voyant statut / LED -->
+                        <circle cx="30" cy="85" r="5" class="printer-led" id="printerLed"/>
+                    </svg>
+                </div>
+            </div>
+
+            <p id="modalStatusText" class="modal-status-text">Recherche des appareils X6h-2CD2, X6, GB01...</p>
+            <div id="modalDeviceName" class="modal-device-name">--</div>
+
+            <div class="modal-actions">
+                <button id="btnModalConnectBle" class="btn btn-primary">Connexion Bluetooth (BLE)</button>
+                <button id="btnModalConnectSerial" class="btn btn-secondary">Connexion Port COM (USB/Bluetooth SPP)</button>
+            </div>
+            <p class="modal-hint">
+                <small><strong>Note Windows :</strong> Si l'imprimante est déjà "Jumelée" dans les paramètres Windows, privilégiez le mode Port COM ou supprimez-la des périphériques Windows avant d'utiliser le Bluetooth Web BLE.</small>
+            </p>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>

@@ -25,9 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPrintBatch = document.getElementById('btnPrintBatch');
 
     // Settings
+    const selectProtocol = document.getElementById('printerProtocol');
+    const selectThreshold = document.getElementById('printThreshold');
     const selectDensity = document.getElementById('printDensity');
     const inputInterLabelFeed = document.getElementById('interLabelFeed');
     const inputPostPrintFeed = document.getElementById('postPrintFeed');
+    const inputCustomServiceUuid = document.getElementById('inputCustomServiceUuid');
 
     // Queue UI
     const btnAddQueue = document.getElementById('btnAddQueue');
@@ -35,25 +38,77 @@ document.addEventListener('DOMContentLoaded', () => {
     const queueListEl = document.getElementById('queueList');
     const queueCountEl = document.getElementById('queueCount');
 
+    // Modal Elements
+    const connectionModal = document.getElementById('connectionModal');
+    const btnCloseModal = document.getElementById('btnCloseModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const radarPulse = document.getElementById('radarPulse');
+    const printerMiniatureWrapper = document.getElementById('printerMiniatureWrapper');
+    const modalStatusText = document.getElementById('modalStatusText');
+    const modalDeviceName = document.getElementById('modalDeviceName');
+    const btnModalConnectBle = document.getElementById('btnModalConnectBle');
+    const btnModalConnectSerial = document.getElementById('btnModalConnectSerial');
+
     // State
     let queue = [];
     let bleDevice = null;
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
+    let serialPort = null;
+    let serialWriter = null;
+    let connectionType = null; // 'ble' ou 'serial'
 
-    // Services UUIDs connus pour les imprimantes Tiny Print / GB01 / MX06 / Cat Printers
+    // Liste exhaustive des services BLE utilisés par les imprimantes thermiques (GB01, Lovcoyo X6, WalkPrint, Nordic UART, Phomemo, etc.)
     const BT_SERVICES = [
-        '0000ff00-0000-1000-8000-00805f9b34fb', // Standard Tiny Print / GB01 Service 0xFF00
-        '0000fee7-0000-1000-8000-00805f9b34fb', // Alternative GB01 / PassThrough Service
-        '49535343-fe7d-4113-a20f-480805411652', // Microchip / UART Service
-        '000018f0-0000-1000-8000-00805f9b34fb'  // Serial Service
+        '6e400001-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART Service (NUS)
+        '49535343-fe7d-4113-a20f-480805411652', // Microchip / ISSC UART Service
+        'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Phomemo / iPrint Service
+        '0000ff00-0000-1000-8000-00805f9b34fb', // Standard Tiny Print / GB01 0xFF00
+        '0000fee7-0000-1000-8000-00805f9b34fb', // GB01 PassThrough 0xFEE7
+        '000018f0-0000-1000-8000-00805f9b34fb', // Serial Service 0x18F0
+        '000018f1-0000-1000-8000-00805f9b34fb', // Serial Service 0x18F1
+        '000018f2-0000-1000-8000-00805f9b34fb', // Serial Service 0x18F2
+        '0000ae01-0000-1000-8000-00805f9b34fb', // Lovcoyo X6 / WalkPrint / Fun Print 0xAE01
+        '0000ae30-0000-1000-8000-00805f9b34fb', // WalkPrint / X6 variant 0xAE30
+        '0000ae00-0000-1000-8000-00805f9b34fb', // Service 0xAE00
+        '0000ae02-0000-1000-8000-00805f9b34fb', // Service 0xAE02
+        '0000af00-0000-1000-8000-00805f9b34fb', // Service 0xAF00
+        '0000af02-0000-1000-8000-00805f9b34fb', // Service 0xAF02
+        '0000e725-0000-1000-8000-00805f9b34fb', // Service 0xE725
+        '0000ff01-0000-1000-8000-00805f9b34fb', // Service 0xFF01
+        '0000ff02-0000-1000-8000-00805f9b34fb', // Service 0xFF02
+        '0000ff03-0000-1000-8000-00805f9b34fb', // Service 0xFF03
+        '0000ff05-0000-1000-8000-00805f9b34fb', // Service 0xFF05
+        '0000ff12-0000-1000-8000-00805f9b34fb', // Service 0xFF12
+        '0000ffff-0000-1000-8000-00805f9b34fb', // Service 0xFFFF
+        '00001101-0000-1000-8000-00805f9b34fb', // SPP Serial Profile 0x1101
+        '0000fee0-0000-1000-8000-00805f9b34fb', // Service 0xFEE0
+        '0000fee1-0000-1000-8000-00805f9b34fb', // Service 0xFEE1
+        '0000fee2-0000-1000-8000-00805f9b34fb', // Service 0xFEE2
+        '0000fef5-0000-1000-8000-00805f9b34fb', // Service 0xFEF5
+        '0000abf0-0000-1000-8000-00805f9b34fb', // Service 0xABF0
+        '0000cc00-0000-1000-8000-00805f9b34fb', // Service 0xCC00
+        '0000cd00-0000-1000-8000-00805f9b34fb', // Service 0xCD00
+        '0000de00-0000-1000-8000-00805f9b34fb', // Service 0xDE00
+        '0000fe00-0000-1000-8000-00805f9b34fb', // Service 0xFE00
+        '0000180a-0000-1000-8000-00805f9b34fb', // Device Information 0x180A
+        '00001800-0000-1000-8000-00805f9b34fb', // Generic Access 0x1800
+        '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute 0x1801
+        '0000180f-0000-1000-8000-00805f9b34fb', // Battery Service 0x180F
+        // Alias courts (16-bit)
+        0x18f0, 0x18f1, 0xae01, 0xae30, 0xff00, 0xfee7, 0xaf00, 0xaf02, 0xe725, 0x180a, 0x1800, 0x1801, 0x180f
     ];
 
     const BT_CHARACTERISTICS = [
+        '6e400002-b5a3-f393-e0a9-e50e24dcca9e', // Nordic UART Write
         '0000ff02-0000-1000-8000-00805f9b34fb', // Standard Tiny Print Write
         '0000ff01-0000-1000-8000-00805f9b34fb',
         '0000fee2-0000-1000-8000-00805f9b34fb',
-        '49535343-8841-43f4-a8d4-ecbe34729bb3'
+        '0000ae02-0000-1000-8000-00805f9b34fb', // Lovcoyo X6 / WalkPrint Write
+        '0000ae01-0000-1000-8000-00805f9b34fb',
+        '49535343-8841-43f4-a8d4-ecbe34729bb3',
+        '49535343-1e4d-4bd9-ba61-23c647249616',
+        '00002ab7-0000-1000-8000-00805f9b34fb'
     ];
 
     // --- DESSIN DU CANVAS (384 x 240) ---
@@ -132,12 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => renderCanvas());
     });
 
-    // --- CONVERSION CANVAS EN BITMAP 1-BIT (TINY PRINT) ---
+    // --- CONVERSION CANVAS EN BITMAP 1-BIT AVEC SEUILLAGE AJUSTABLE ---
     /**
      * Chaque ligne de 384 pixels est convertie en 48 octets (384 / 8 = 48).
      * 1 bit = 1 pixel (1 pour noir/brûlé, 0 pour blanc).
      */
-    function canvasToBitmap(canvas) {
+    function canvasToBitmap(canvas, thresholdValue = 128) {
         const width = canvas.width;  // 384
         const height = canvas.height; // 240
         const imgData = ctx.getImageData(0, 0, width, height).data;
@@ -152,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const b = imgData[offset + 2];
                 // Calcule la luminance (niveau de gris)
                 const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-                const isBlack = luminance < 128; // Seuillage 50%
+                const isBlack = luminance < thresholdValue;
 
                 if (isBlack) {
                     const byteIdx = y * bytesPerLine + Math.floor(x / 8);
@@ -237,110 +292,305 @@ document.addEventListener('DOMContentLoaded', () => {
         return createCmdPacket(0xA1, payload);
     }
 
-    // --- ENVOI BLE PAR CHUNKS (MTU SAFE) ---
+    // --- ENVOI DE DONNÉES (UNIFIÉ BLE & PORT SÉRIE / COM) ---
     async function sendBytes(bytes) {
-        if (!bleWriteCharacteristic) {
-            throw new Error("Imprimante non connectée.");
+        if (connectionType === 'serial' && serialWriter) {
+            // Envoi via Web Serial (Port COM / Bluetooth SPP)
+            await serialWriter.write(bytes);
+            return;
         }
 
-        const CHUNK_SIZE = 80; // Safe MTU size for BLE
-        for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
-            const chunk = bytes.slice(i, i + CHUNK_SIZE);
-            if (bleWriteCharacteristic.properties.writeWithoutResponse) {
-                await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
-            } else {
-                await bleWriteCharacteristic.writeValue(chunk);
+        if (connectionType === 'ble' && bleWriteCharacteristic) {
+            // Envoi via Web Bluetooth par paquets MTU
+            const CHUNK_SIZE = 80; // Paquet sécurisé pour BLE
+            for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+                const chunk = bytes.slice(i, i + CHUNK_SIZE);
+                if (bleWriteCharacteristic.properties.writeWithoutResponse) {
+                    await bleWriteCharacteristic.writeValueWithoutResponse(chunk);
+                } else {
+                    await bleWriteCharacteristic.writeValue(chunk);
+                }
+                await new Promise(resolve => setTimeout(resolve, 15));
             }
-            // Petite pause pour ne pas saturer le buffer de l'imprimante
-            await new Promise(resolve => setTimeout(resolve, 15));
+            return;
         }
+
+        throw new Error("Imprimante non connectée.");
     }
 
-    // --- IMPRESSION D'UN CANVAS ---
+    // --- PROTOCOLE ESC/POS RASTER GENERATION (MODÈLES X6 / WALKPRINT / POS) ---
+    function buildEscPosRasterData(targetCanvas, thresholdVal = 128) {
+        const width = targetCanvas.width; // 384
+        const height = targetCanvas.height; // 240
+        const bytesPerLine = width / 8; // 48
+        const bitmap = canvasToBitmap(targetCanvas, thresholdVal);
+
+        // Commande ESC/POS GS v 0 (0x1D 0x76 0x30 0x00)
+        // Format: GS v 0 m xL xH yL yH data...
+        const xL = bytesPerLine & 0xFF; // 48 (0x30)
+        const xH = (bytesPerLine >> 8) & 0xFF; // 0
+        const yL = height & 0xFF; // 240 (0xF0)
+        const yH = (height >> 8) & 0xFF; // 0
+
+        // ESC @ (Reset/Init) + GS v 0 m xL xH yL yH
+        const header = new Uint8Array([
+            0x1B, 0x40, // ESC @ (Init)
+            0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH
+        ]);
+
+        const fullBuffer = new Uint8Array(header.length + bitmap.length);
+        fullBuffer.set(header, 0);
+        fullBuffer.set(bitmap, header.length);
+
+        return fullBuffer;
+    }
+
+    function createEscPosFeedPacket(lines) {
+        // ESC d n (0x1B 0x64 n) -> Avance de n lignes
+        const feedCount = Math.min(Math.max(1, Math.round(lines / 3)), 255);
+        return new Uint8Array([0x1B, 0x64, feedCount]);
+    }
+
+    // --- IMPRESSION D'UN CANVAS (UNIFIÉE ESC/POS & TINY PRINT GB01) ---
     async function printCanvas(targetCanvas, interFeedLines = 0) {
         updateStatus("Impression...", "printing");
 
+        const protocol = selectProtocol ? selectProtocol.value : 'escpos';
+        const thresholdVal = selectThreshold ? parseInt(selectThreshold.value, 10) : 128;
         const density = selectDensity.value;
-        const bitmap = canvasToBitmap(targetCanvas);
-        const height = targetCanvas.height; // 240
-        const bytesPerLine = targetCanvas.width / 8; // 48
 
-        // 1. Commande d'énergie / densité (Cmd 0xA6)
-        const energyPacket = createCmdPacket(0xA6, getEnergyPayload(density));
-        await sendBytes(energyPacket);
+        if (protocol === 'escpos') {
+            // Mode ESC/POS Raster (Lovcoyo X6, WalkPrint, POS printers)
+            const rasterBytes = buildEscPosRasterData(targetCanvas, thresholdVal);
+            await sendBytes(rasterBytes);
 
-        // 2. Envoi des lignes bitmap (Cmd 0xA2)
-        for (let y = 0; y < height; y++) {
-            const rowData = bitmap.slice(y * bytesPerLine, (y + 1) * bytesPerLine);
-            const rowPacket = createCmdPacket(0xA2, rowData);
-            await sendBytes(rowPacket);
-        }
+            if (interFeedLines > 0) {
+                const feedBytes = createEscPosFeedPacket(interFeedLines);
+                await sendBytes(feedBytes);
+            }
+        } else {
+            // Mode Tiny Print / GB01 (Protocole Qx 0x51 0x78)
+            const bitmap = canvasToBitmap(targetCanvas, thresholdVal);
+            const height = targetCanvas.height; // 240
+            const bytesPerLine = targetCanvas.width / 8; // 48
 
-        // 3. Espace / Feed
-        if (interFeedLines > 0) {
-            const feedPacket = createFeedPacket(interFeedLines);
-            await sendBytes(feedPacket);
+            // 1. Commande d'énergie / densité (Cmd 0xA6)
+            const energyPacket = createCmdPacket(0xA6, getEnergyPayload(density));
+            await sendBytes(energyPacket);
+
+            // 2. Envoi des lignes bitmap (Cmd 0xA2)
+            for (let y = 0; y < height; y++) {
+                const rowData = bitmap.slice(y * bytesPerLine, (y + 1) * bytesPerLine);
+                const rowPacket = createCmdPacket(0xA2, rowData);
+                await sendBytes(rowPacket);
+            }
+
+            // 3. Espace / Feed
+            if (interFeedLines > 0) {
+                const feedPacket = createFeedPacket(interFeedLines);
+                await sendBytes(feedPacket);
+            }
         }
 
         updateStatus("Connecté", "connected");
     }
 
-    // --- WEB BLUETOOTH MANAGEMENT ---
-    async function connectBluetooth() {
-        try {
-            updateStatus("Connexion...", "connecting");
+    // --- GESTION UX DU MODAL ANDROID ---
+    function setModalState(state, deviceName = '--') {
+        printerMiniatureWrapper.className = `printer-miniature-wrapper state-${state}`;
+        modalDeviceName.textContent = deviceName;
 
-            bleDevice = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: BT_SERVICES
-            });
+        if (state === 'searching') {
+            radarPulse.style.display = 'block';
+            modalTitle.textContent = "Recherche d'imprimante en cours...";
+            modalStatusText.textContent = "Balayage Bluetooth des appareils X6h-2CD2, X6, GB01...";
+        } else if (state === 'found') {
+            radarPulse.style.display = 'none';
+            modalTitle.textContent = "Imprimante détectée !";
+            modalStatusText.textContent = "Établissement du canal de communication...";
+        } else if (state === 'connected') {
+            radarPulse.style.display = 'none';
+            modalTitle.textContent = "Imprimante connectée !";
+            modalStatusText.textContent = "Appareil prêt pour l'impression d'étiquettes.";
+        }
+    }
+
+    function openModal() {
+        connectionModal.classList.remove('hidden');
+        setModalState('searching', '--');
+    }
+
+    function closeModal() {
+        connectionModal.classList.add('hidden');
+    }
+
+    // --- CONNEXION BLUETOOTH BLE AVEC FILTRES PAR NOM ---
+    async function connectBluetoothBLE() {
+        try {
+            openModal();
+            updateStatus("Connexion BLE...", "connecting");
+
+            const activeServices = [...BT_SERVICES];
+            if (inputCustomServiceUuid && inputCustomServiceUuid.value.trim()) {
+                const customUuid = inputCustomServiceUuid.value.trim().toLowerCase();
+                if (!activeServices.includes(customUuid)) {
+                    activeServices.unshift(customUuid);
+                }
+            }
+
+            // Filtres par préfixe de nom pour afficher directement X6h-2CD2 et imprimantes similaires en haut de liste
+            const namePrefixes = ['X6h', 'X6', 'MX', 'GB', 'Cat', 'Printer', 'Walk', 'Phomemo', 'iPrint', 'Ble'];
+
+            let deviceOptions = {
+                filters: namePrefixes.map(prefix => ({ namePrefix: prefix })),
+                optionalServices: activeServices
+            };
+
+            try {
+                bleDevice = await navigator.bluetooth.requestDevice(deviceOptions);
+            } catch (e) {
+                // Si l'utilisateur a annulé ou si aucun appareil ne correspond au filtre, proposer acceptAllDevices
+                bleDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: activeServices
+                });
+            }
+
+            // Étape 2 UX : Appareil Sélectionné / Trouvé
+            setModalState('found', bleDevice.name || "X6h-2CD2");
 
             bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
 
             bleGattServer = await bleDevice.gatt.connect();
 
-            // Recherche du service et de la caractéristique d'écriture
             let targetChar = null;
-            for (const serviceUuid of BT_SERVICES) {
+            const discoveredInfo = [];
+
+            let services = [];
+            try {
+                services = await bleGattServer.getPrimaryServices();
+            } catch (e) {
+                console.warn("getPrimaryServices() sans filtre a échoué, interrogation service par service.", e);
+            }
+
+            if (!services || services.length === 0) {
+                for (const serviceUuid of activeServices) {
+                    try {
+                        const service = await bleGattServer.getPrimaryService(serviceUuid);
+                        if (service) services.push(service);
+                    } catch (e) {
+                        // Service non présent
+                    }
+                }
+            }
+
+            for (const service of services) {
                 try {
-                    const service = await bleGattServer.getPrimaryService(serviceUuid);
-                    if (service) {
-                        const characteristics = await service.getCharacteristics();
-                        for (const char of characteristics) {
-                            if (char.properties.write || char.properties.writeWithoutResponse) {
-                                targetChar = char;
-                                break;
-                            }
+                    const characteristics = await service.getCharacteristics();
+                    const charLogs = [];
+
+                    for (const char of characteristics) {
+                        const props = [];
+                        if (char.properties.write) props.push("write");
+                        if (char.properties.writeWithoutResponse) props.push("writeWithoutResponse");
+                        if (char.properties.read) props.push("read");
+                        if (char.properties.notify) props.push("notify");
+                        if (char.properties.indicate) props.push("indicate");
+
+                        charLogs.push(`  - Caractéristique: ${char.uuid} [${props.join(', ') || 'aucune'}]`);
+
+                        if (!targetChar && (char.properties.write || char.properties.writeWithoutResponse)) {
+                            targetChar = char;
                         }
                     }
+
+                    discoveredInfo.push(`Service ${service.uuid} :\n` + (charLogs.join('\n') || '  (aucune caractéristique)'));
                 } catch (e) {
-                    // Service non trouvé sur cet appareil, continuer
+                    discoveredInfo.push(`Service ${service.uuid} : impossible de lire les caractéristiques (${e.message})`);
                 }
-                if (targetChar) break;
             }
 
             if (!targetChar) {
-                throw new Error("Impossible de trouver une caractéristique d'écriture compatible sur cet appareil.");
+                let diagMsg = "Impossible de trouver une caractéristique d'écriture BLE sur cet appareil.\n\n";
+                if (discoveredInfo.length > 0) {
+                    diagMsg += "Détails des services/caractéristiques :\n" + discoveredInfo.join('\n\n');
+                } else {
+                    diagMsg += "Conseil : Votre imprimante X6h est 'Jumelée' sous Windows. Cliquez sur le bouton 'Connexion Port COM (USB/Bluetooth SPP)' dans la fenêtre pour vous connecter directement via le port virtuel créé par Windows.";
+                }
+                throw new Error(diagMsg);
             }
 
             bleWriteCharacteristic = targetChar;
-            updateStatus("Connecté", "connected");
+            connectionType = 'ble';
+
+            // Étape 3 UX : Connecté avec succès
+            setModalState('connected', bleDevice.name || "X6h-2CD2");
+            updateStatus("Connecté (BLE)", "connected");
+
             btnConnect.disabled = true;
             btnDisconnect.disabled = false;
             btnManualFeed.disabled = false;
             btnPrintDirect.disabled = false;
             updateQueueButtonsState();
 
+            setTimeout(() => closeModal(), 1800);
+
         } catch (error) {
             console.error("Erreur de connexion BLE:", error);
             alert("Échec de connexion Bluetooth : " + error.message);
             updateStatus("Déconnecté", "disconnected");
+            closeModal();
         }
     }
 
-    function disconnectBluetooth() {
-        if (bleDevice && bleDevice.gatt.connected) {
+    // --- CONNEXION REPLI WEB SERIAL (PORT COM / BLUETOOTH SPP) ---
+    async function connectSerial() {
+        if (!('serial' in navigator)) {
+            alert("L'API Web Serial n'est pas supportée par ce navigateur. Utilisez Google Chrome ou Microsoft Edge.");
+            return;
+        }
+
+        try {
+            openModal();
+            updateStatus("Connexion Port COM...", "connecting");
+
+            serialPort = await navigator.serial.requestPort();
+            setModalState('found', "Port Série COM");
+
+            await serialPort.open({ baudRate: 9600 });
+            serialWriter = serialPort.writable.getWriter();
+            connectionType = 'serial';
+
+            setModalState('connected', "Port COM (Prêt)");
+            updateStatus("Connecté (Port COM)", "connected");
+
+            btnConnect.disabled = true;
+            btnDisconnect.disabled = false;
+            btnManualFeed.disabled = false;
+            btnPrintDirect.disabled = false;
+            updateQueueButtonsState();
+
+            setTimeout(() => closeModal(), 1800);
+
+        } catch (error) {
+            console.error("Erreur connexion Port COM:", error);
+            alert("Échec de connexion Port COM : " + error.message);
+            updateStatus("Déconnecté", "disconnected");
+            closeModal();
+        }
+    }
+
+    function disconnectPrinter() {
+        if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
             bleDevice.gatt.disconnect();
+        }
+        if (serialWriter) {
+            try { serialWriter.releaseLock(); } catch(e) {}
+            serialWriter = null;
+        }
+        if (serialPort) {
+            try { serialPort.close(); } catch(e) {}
+            serialPort = null;
         }
         onDisconnected();
     }
@@ -349,6 +599,10 @@ document.addEventListener('DOMContentLoaded', () => {
         bleDevice = null;
         bleGattServer = null;
         bleWriteCharacteristic = null;
+        serialPort = null;
+        serialWriter = null;
+        connectionType = null;
+
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
         btnDisconnect.disabled = true;
@@ -433,7 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateQueueButtonsState() {
-        const isConnected = !!bleWriteCharacteristic;
+        const isConnected = !!bleWriteCharacteristic || !!serialWriter;
         btnPrintBatch.disabled = !isConnected || queue.length === 0;
     }
 
@@ -459,14 +713,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    btnConnect.addEventListener('click', connectBluetooth);
-    btnDisconnect.addEventListener('click', disconnectBluetooth);
+    btnConnect.addEventListener('click', connectBluetoothBLE);
+    btnDisconnect.addEventListener('click', disconnectPrinter);
+
+    btnCloseModal.addEventListener('click', closeModal);
+    btnModalConnectBle.addEventListener('click', connectBluetoothBLE);
+    btnModalConnectSerial.addEventListener('click', connectSerial);
 
     btnManualFeed.addEventListener('click', async () => {
         try {
             updateStatus("Avance papier...", "printing");
             const lines = parseInt(inputInterLabelFeed.value, 10) || 30;
-            await sendBytes(createFeedPacket(lines));
+            const protocol = selectProtocol ? selectProtocol.value : 'escpos';
+
+            if (protocol === 'escpos') {
+                await sendBytes(createEscPosFeedPacket(lines));
+            } else {
+                await sendBytes(createFeedPacket(lines));
+            }
             updateStatus("Connecté", "connected");
         } catch (error) {
             alert("Erreur avance papier : " + error.message);
