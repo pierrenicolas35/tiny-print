@@ -110,10 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DESSIN DU CANVAS (384 x 240) ---
     function renderCanvas(data = getFormData(), isForPrint = false, targetCtx = ctx, targetCanvas = canvas) {
         targetCtx.save();
-        if (isForPrint) {
-            targetCtx.translate(targetCanvas.width, targetCanvas.height);
-            targetCtx.rotate(Math.PI);
-        }
+        // La rotation a été supprimée suite aux retours
 
         // Clear canvas with white background
         targetCtx.fillStyle = '#ffffff';
@@ -123,8 +120,9 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
-        // Défini à 8 (1mm de marge) car on imprime sur 1.9cm (152px)
-        const OFFSET_Y = 8;
+        // 80px (1cm) de marge en haut (la rotation ayant été retirée)
+        // + 8px de marge (1mm) avant le nom, soit 88px.
+        const OFFSET_Y = 88;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -132,7 +130,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.translate(22, OFFSET_Y);
             targetCtx.rotate(-Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
-            targetCtx.textAlign = 'right'; // Aligné en haut
+            // L'axe X pointe vers le haut du canvas. Pour que le texte aille vers le bas (dans le sens de lecture),
+            // on doit le dessiner dans les X négatifs et l'aligner à droite pour l'accrocher à l'OFFSET_Y (0 sur X).
+            targetCtx.textAlign = 'right';
             targetCtx.fillText(data.discipline, 0, -10);
             targetCtx.restore();
         }
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.translate(targetCanvas.width - 22, OFFSET_Y);
             targetCtx.rotate(Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
-            targetCtx.textAlign = 'left'; // Aligné en haut
+            targetCtx.textAlign = 'left';
             targetCtx.fillText(data.dateEntree, 0, -10);
             targetCtx.restore();
         }
@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.save();
         targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 46;
+        let nomFontSize = 42;
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -160,12 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
             nomFontSize -= 2;
             targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
-        const nomY = OFFSET_Y; // Tout en haut (y=8)
+        const nomY = OFFSET_Y; // Sous la marge de 80px (y=88)
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 36;
+        let prenomFontSize = 32;
         targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
@@ -173,20 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 4;
+        const prenomY = nomY + nomFontSize + 2;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        const dobFontSize = 28;
+        const dobFontSize = 24;
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
-        const dobY = prenomY + prenomFontSize + 6;
+        const dobY = prenomY + prenomFontSize + 4;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + dobFontSize + 6;
-        let motifFontSize = 24;
+        const motifY = dobY + dobFontSize + 4;
+        let motifFontSize = 20;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
         // Réduire la police si le texte est trop long
@@ -201,9 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            // Ligne à Y = 160 (152 pixels d'impression + 8 pixels de marge = 160, soit targetCanvas.height - 80)
-            targetCtx.moveTo(0, targetCanvas.height - 80);
-            targetCtx.lineTo(targetCanvas.width, targetCanvas.height - 80);
+            // Ligne indiquant la fin de la marge matérielle de 1cm (80px en haut sans rotation)
+            targetCtx.moveTo(0, 80);
+            targetCtx.lineTo(targetCanvas.width, 80);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
