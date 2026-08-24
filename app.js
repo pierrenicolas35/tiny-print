@@ -401,7 +401,11 @@ document.addEventListener('DOMContentLoaded', () => {
         printerMiniatureWrapper.className = `printer-miniature-wrapper state-${state}`;
         modalDeviceName.textContent = deviceName;
 
-        if (state === 'searching') {
+        if (state === 'idle') {
+            radarPulse.style.display = 'none';
+            modalTitle.textContent = "Choix de la connexion";
+            modalStatusText.textContent = "Sélectionnez le mode de connexion souhaité :";
+        } else if (state === 'searching') {
             radarPulse.style.display = 'block';
             modalTitle.textContent = "Recherche d'imprimante en cours...";
             modalStatusText.textContent = "Balayage Bluetooth des appareils X6h-2CD2, X6, GB01...";
@@ -418,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openModal() {
         connectionModal.classList.remove('hidden');
-        setModalState('searching', '--');
+        setModalState('idle', '--');
     }
 
     function closeModal() {
@@ -428,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CONNEXION BLUETOOTH BLE AVEC FILTRES PAR NOM ---
     async function connectBluetoothBLE() {
         try {
-            openModal();
+            setModalState('searching', '--');
             updateStatus("Connexion BLE...", "connecting");
 
             const activeServices = [...BT_SERVICES];
@@ -439,23 +443,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Filtres par préfixe de nom pour afficher directement X6h-2CD2 et imprimantes similaires en haut de liste
-            const namePrefixes = ['X6h', 'X6', 'MX', 'GB', 'Cat', 'Printer', 'Walk', 'Phomemo', 'iPrint', 'Ble'];
-
             let deviceOptions = {
-                filters: namePrefixes.map(prefix => ({ namePrefix: prefix })),
+                acceptAllDevices: true,
                 optionalServices: activeServices
             };
 
-            try {
-                bleDevice = await navigator.bluetooth.requestDevice(deviceOptions);
-            } catch (e) {
-                // Si l'utilisateur a annulé ou si aucun appareil ne correspond au filtre, proposer acceptAllDevices
-                bleDevice = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: activeServices
-                });
-            }
+            bleDevice = await navigator.bluetooth.requestDevice(deviceOptions);
 
             // Étape 2 UX : Appareil Sélectionné / Trouvé
             setModalState('found', bleDevice.name || "X6h-2CD2");
@@ -577,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            openModal();
+            setModalState('searching', '--');
             updateStatus("Connexion Port COM...", "connecting");
 
             serialPort = await navigator.serial.requestPort();
@@ -747,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    btnConnect.addEventListener('click', connectBluetoothBLE);
+    btnConnect.addEventListener('click', openModal);
     btnDisconnect.addEventListener('click', disconnectPrinter);
 
     btnCloseModal.addEventListener('click', closeModal);

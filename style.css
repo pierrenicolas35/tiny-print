@@ -427,6 +427,15 @@ label {
 }
 
 /* ÉTATS VISUELS DE LA MINIATURE */
+/* ÉTAPE 0: Idle (Choix, Gris léger) */
+.printer-miniature-wrapper.state-idle {
+    background: #f8fafc;
+    filter: grayscale(80%) opacity(0.8);
+}
+.printer-miniature-wrapper.state-idle .printer-led {
+    fill: #cbd5e1;
+}
+
 /* ÉTAPE 1: Recherche (Grisé / Monochrome) */
 .printer-miniature-wrapper.state-searching {
     background: #f1f5f9;
