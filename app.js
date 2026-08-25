@@ -126,12 +126,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Puisque l'impression subit une rotation de 180°, ce qui est en "bas" du canvas
         // sortira en premier. Pour commencer à imprimer tout de suite sans blanc, le texte
         // doit être collé au bas du canvas (de 88 à 240, ce qui correspond à 1.9cm / 152px de hauteur).
-        const OFFSET_Y = 88;
+        // Pour l'aperçu, on affiche le texte en haut (OFFSET_Y = 0) et le blanc en bas.
+        const OFFSET_Y = isForPrint ? 88 : 0;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
             targetCtx.save();
-            targetCtx.translate(22, OFFSET_Y);
+            // In preview mode (OFFSET_Y == 0), we must start drawing below our elements.
+            // When OFFSET_Y == 88, we start at 88 and draw negative.
+            // Since it is vertical text anchored via rotation, if we translate at 0,
+            // drawing in negative Y would go offscreen.
+            // We need to translate to Y = isForPrint ? 88 : 152.
+            const dispY = isForPrint ? 88 : 0;
+            targetCtx.translate(22, dispY);
             targetCtx.rotate(-Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
             // L'axe X pointe vers le haut du canvas. Pour que le texte aille vers le bas (dans le sens de lecture),
@@ -144,7 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Date d'entrée (verticale sur le côté droit, TOUT EN HAUT)
         if (data.dateEntree) {
             targetCtx.save();
-            targetCtx.translate(targetCanvas.width - 22, OFFSET_Y);
+            // In preview mode (OFFSET_Y == 0), start the rotation from Y=0 instead of Y=152
+            // since we do a positive Math.PI/2 rotation and draw down.
+            const dateY = isForPrint ? 88 : 0;
+            targetCtx.translate(targetCanvas.width - 22, dateY);
             targetCtx.rotate(Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
             targetCtx.textAlign = 'left';
@@ -205,9 +215,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            // Ligne indiquant la limite haute (marge de 88px en haut du canvas non retourné)
-            targetCtx.moveTo(0, 88);
-            targetCtx.lineTo(targetCanvas.width, 88);
+            // Ligne indiquant la limite basse (marge de 88px en bas de l'aperçu, donc Y=152)
+            targetCtx.moveTo(0, 152);
+            targetCtx.lineTo(targetCanvas.width, 152);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
