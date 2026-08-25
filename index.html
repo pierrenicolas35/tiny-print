@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impression Étiquettes Thermiques BLE (50x30 mm)</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <header class="app-header">
@@ -23,8 +24,8 @@
                     <span id="bluetoothStatus" class="status-badge status-disconnected">Déconnecté</span>
                 </div>
                 <div class="status-container">
-                    <span class="status-label">Retour Imprimante :</span>
-                    <span id="printerFeedback" class="status-badge status-disconnected">Aucune donnée</span>
+                    <span class="status-label">Batterie 🔋 :</span>
+                    <span id="printerFeedback" class="status-badge status-disconnected">Inconnu</span>
                 </div>
                 <div class="button-group">
                     <button id="btnConnect" class="btn btn-primary">Connexion Imprimante</button>

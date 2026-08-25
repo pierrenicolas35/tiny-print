@@ -3,6 +3,19 @@
  * Protocole Tiny Print / GB01 / Cat Printer
  */
 
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      })
+      .catch(err => {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Canvas & Context
     const canvas = document.getElementById('labelCanvas');
@@ -540,6 +553,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus("Connexion BLE...", "connecting");
 
             const activeServices = [...BT_SERVICES];
+            // Ensure battery service is strictly requested, even if missing from main list somehow
+            if (!activeServices.includes(0x180f)) activeServices.push(0x180f);
+            if (!activeServices.includes('0000180f-0000-1000-8000-00805f9b34fb')) activeServices.push('0000180f-0000-1000-8000-00805f9b34fb');
 
             let deviceOptions = {
                 acceptAllDevices: true,
@@ -637,19 +653,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 bleNotifyCharacteristic = targetNotifyChar;
                 try {
                     await bleNotifyCharacteristic.startNotifications();
+                    // We keep notifications active to prevent the printer from sleeping,
+                    // but we no longer display the raw hex data.
                     bleNotifyCharacteristic.addEventListener('characteristicvaluechanged', (event) => {
-                        const value = event.target.value;
-                        let hexString = '';
-                        for (let i = 0; i < value.byteLength; i++) {
-                            hexString += value.getUint8(i).toString(16).padStart(2, '0') + ' ';
-                        }
-                        const feedbackEl = document.getElementById('printerFeedback');
-                        if (feedbackEl) {
-                            feedbackEl.textContent = hexString.trim().toUpperCase();
-                        }
+                        // Keep connection alive silently
                     });
                 } catch (e) {
                     console.warn("Impossible d'activer les notifications pour maintenir l'imprimante éveillée :", e);
+                }
+            }
+
+            // Tentative de lecture du niveau de batterie
+            try {
+                const batteryService = await bleGattServer.getPrimaryService(0x180f);
+                const batteryLevelChar = await batteryService.getCharacteristic(0x2a19);
+                const batteryValue = await batteryLevelChar.readValue();
+                const batteryPercent = batteryValue.getUint8(0);
+                const feedbackEl = document.getElementById('printerFeedback');
+                if (feedbackEl) {
+                    feedbackEl.textContent = `${batteryPercent}%`;
+                }
+            } catch (e) {
+                console.warn("Impossible de lire le niveau de batterie :", e);
+                const feedbackEl = document.getElementById('printerFeedback');
+                if (feedbackEl) {
+                    feedbackEl.textContent = "Non disponible";
                 }
             }
 
@@ -690,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const feedbackEl = document.getElementById('printerFeedback');
         if (feedbackEl) {
-            feedbackEl.textContent = "Aucune donnée";
+            feedbackEl.textContent = "Inconnu";
         }
 
         updateStatus("Déconnecté", "disconnected");
