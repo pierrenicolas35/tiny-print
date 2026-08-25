@@ -1,6 +1,7 @@
 name: Déploiement PR Preview
 
 on:
+  workflow_call:
   pull_request:
     types:
       - opened
@@ -27,6 +28,5 @@ jobs:
         uses: rossjrw/pr-preview-action@v1
         with:
           source-dir: .
-          preview-branch: main-1858709927362588172
           umbrella-dir: pr-preview
           action: auto
