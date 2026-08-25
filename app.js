@@ -123,8 +123,10 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
-        // Défini à 0 pour imprimer immédiatement sans aucune marge.
-        const OFFSET_Y = 0;
+        // Puisque l'impression subit une rotation de 180°, ce qui est en "bas" du canvas
+        // sortira en premier. Pour commencer à imprimer tout de suite sans blanc, le texte
+        // doit être collé au bas du canvas (de 88 à 240, ce qui correspond à 1.9cm / 152px de hauteur).
+        const OFFSET_Y = 88;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -203,9 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            // Ligne indiquant la limite des 1.9cm (152 pixels)
-            targetCtx.moveTo(0, 152);
-            targetCtx.lineTo(targetCanvas.width, 152);
+            // Ligne indiquant la limite haute (marge de 88px en haut du canvas non retourné)
+            targetCtx.moveTo(0, 88);
+            targetCtx.lineTo(targetCanvas.width, 88);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
