@@ -120,9 +120,8 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
-        // 80px (1cm) de marge en haut (la rotation ayant été retirée)
-        // + 8px de marge (1mm) avant le nom, soit 88px.
-        const OFFSET_Y = 88;
+        // Défini à 0 pour imprimer immédiatement sans aucune marge.
+        const OFFSET_Y = 0;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -152,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.save();
         targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 42;
+        let nomFontSize = 48;
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -160,12 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
             nomFontSize -= 2;
             targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
-        const nomY = OFFSET_Y; // Sous la marge de 80px (y=88)
+        const nomY = OFFSET_Y; // Tout en haut (y=0)
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 32;
+        let prenomFontSize = 38;
         targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
@@ -173,20 +172,20 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 2;
+        const prenomY = nomY + nomFontSize + 4;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        const dobFontSize = 24;
+        const dobFontSize = 28;
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
         const dobY = prenomY + prenomFontSize + 4;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + dobFontSize + 4;
-        let motifFontSize = 20;
+        const motifY = dobY + dobFontSize + 6;
+        let motifFontSize = 24;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
         // Réduire la police si le texte est trop long
@@ -201,9 +200,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            // Ligne indiquant la fin de la marge matérielle de 1cm (80px en haut sans rotation)
-            targetCtx.moveTo(0, 80);
-            targetCtx.lineTo(targetCanvas.width, 80);
+            // Ligne indiquant la limite des 1.9cm (152 pixels)
+            targetCtx.moveTo(0, 152);
+            targetCtx.lineTo(targetCanvas.width, 152);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
@@ -774,7 +773,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (queue.length === 0) return;
 
         const interFeed = parseInt(inputInterLabelFeed.value, 10) || 20;
-        const postFeed = parseInt(inputPostPrintFeed.value, 10) || 60;
+        const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
 
         try {
             for (let i = 0; i < queue.length; i++) {
@@ -825,7 +824,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnPrintDirect.addEventListener('click', async () => {
         try {
-            const postFeed = parseInt(inputPostPrintFeed.value, 10) || 60;
+            const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
 
             // Créer un canvas temporaire pour l'impression (pour appliquer isForPrint = true)
             const printCanvasEl = document.createElement('canvas');
@@ -847,4 +846,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialisation
     renderCanvas();
+});
+
+// Affichage dynamique de la date et heure courante au chargement
+document.addEventListener('DOMContentLoaded', () => {
+    const buildDateEl = document.getElementById('buildDate');
+    if (buildDateEl) {
+        const now = new Date();
+        const strDate = now.toLocaleDateString('fr-FR');
+        const strTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        buildDateEl.textContent = `${strDate} à ${strTime}`;
+    }
 });
