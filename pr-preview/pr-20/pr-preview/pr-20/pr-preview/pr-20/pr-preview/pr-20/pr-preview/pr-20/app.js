@@ -123,10 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.textBaseline = 'top';
 
         // Décalage vertical global appliqué à tous les éléments.
-        // Puisque l'impression subit une rotation de 180°, ce qui est en "bas" du canvas
-        // sortira en premier. Pour commencer à imprimer tout de suite sans blanc, le texte
-        // doit être collé au bas du canvas (de 88 à 240, ce qui correspond à 1.9cm / 152px de hauteur).
-        const OFFSET_Y = 88;
+        // Défini à 8 (1mm de marge) car on imprime sur 1.9cm (152px)
+        const OFFSET_Y = 8;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
         if (data.discipline) {
@@ -134,9 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.translate(22, OFFSET_Y);
             targetCtx.rotate(-Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
-            // L'axe X pointe vers le haut du canvas. Pour que le texte aille vers le bas (dans le sens de lecture),
-            // on doit le dessiner dans les X négatifs et l'aligner à droite pour l'accrocher à l'OFFSET_Y (0 sur X).
-            targetCtx.textAlign = 'right';
+            targetCtx.textAlign = 'right'; // Aligné en haut
             targetCtx.fillText(data.discipline, 0, -10);
             targetCtx.restore();
         }
@@ -147,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.translate(targetCanvas.width - 22, OFFSET_Y);
             targetCtx.rotate(Math.PI / 2);
             targetCtx.font = 'bold 24px Arial, sans-serif';
-            targetCtx.textAlign = 'left';
+            targetCtx.textAlign = 'left'; // Aligné en haut
             targetCtx.fillText(data.dateEntree, 0, -10);
             targetCtx.restore();
         }
@@ -156,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.save();
         targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 48;
+        let nomFontSize = 46;
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -164,12 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
             nomFontSize -= 2;
             targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
-        const nomY = OFFSET_Y; // Tout en haut (y=0)
+        const nomY = OFFSET_Y; // Tout en haut (y=8)
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 38;
+        let prenomFontSize = 36;
         targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
@@ -184,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
         const dobFontSize = 28;
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
-        const dobY = prenomY + prenomFontSize + 4;
+        const dobY = prenomY + prenomFontSize + 6;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
@@ -205,9 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.save();
             targetCtx.setLineDash([5, 5]);
             targetCtx.beginPath();
-            // Ligne indiquant la limite haute (marge de 88px en haut du canvas non retourné)
-            targetCtx.moveTo(0, 88);
-            targetCtx.lineTo(targetCanvas.width, 88);
+            // Ligne à Y = 160 (152 pixels d'impression + 8 pixels de marge = 160, soit targetCanvas.height - 80)
+            targetCtx.moveTo(0, targetCanvas.height - 80);
+            targetCtx.lineTo(targetCanvas.width, targetCanvas.height - 80);
             targetCtx.strokeStyle = '#999999';
             targetCtx.lineWidth = 2;
             targetCtx.stroke();
@@ -778,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (queue.length === 0) return;
 
         const interFeed = parseInt(inputInterLabelFeed.value, 10) || 20;
-        const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
+        const postFeed = parseInt(inputPostPrintFeed.value, 10) || 60;
 
         try {
             for (let i = 0; i < queue.length; i++) {
@@ -829,7 +825,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnPrintDirect.addEventListener('click', async () => {
         try {
-            const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
+            const postFeed = parseInt(inputPostPrintFeed.value, 10) || 60;
 
             // Créer un canvas temporaire pour l'impression (pour appliquer isForPrint = true)
             const printCanvasEl = document.createElement('canvas');
