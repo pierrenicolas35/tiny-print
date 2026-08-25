@@ -110,7 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- DESSIN DU CANVAS (384 x 240) ---
     function renderCanvas(data = getFormData(), isForPrint = false, targetCtx = ctx, targetCanvas = canvas) {
         targetCtx.save();
-        // La rotation a été supprimée suite aux retours
+        if (isForPrint) {
+            targetCtx.translate(targetCanvas.width, targetCanvas.height);
+            targetCtx.rotate(Math.PI);
+        }
 
         // Clear canvas with white background
         targetCtx.fillStyle = '#ffffff';
@@ -846,15 +849,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialisation
     renderCanvas();
-});
-
-// Affichage dynamique de la date et heure courante au chargement
-document.addEventListener('DOMContentLoaded', () => {
-    const buildDateEl = document.getElementById('buildDate');
-    if (buildDateEl) {
-        const now = new Date();
-        const strDate = now.toLocaleDateString('fr-FR');
-        const strTime = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        buildDateEl.textContent = `${strDate} à ${strTime}`;
-    }
 });
