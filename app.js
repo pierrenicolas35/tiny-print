@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputPrenom = document.getElementById('inputPrenom');
     const inputDateNaissance = document.getElementById('inputDateNaissance');
     const inputMotif = document.getElementById('inputMotif');
+    const inputChambreSeule = document.getElementById('inputChambreSeule');
 
     // Bluetooth UI
     const statusBadge = document.getElementById('bluetoothStatus');
@@ -143,7 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const OFFSET_Y = isForPrint ? 88 : 0;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
-        if (data.discipline) {
+        const disciplineToDraw = data.discipline ? data.discipline : (isForPrint ? "" : "DISC");
+        if (disciplineToDraw) {
             targetCtx.save();
             // In preview mode (OFFSET_Y == 0), we must start drawing below our elements.
             // When OFFSET_Y == 88, we start at 88 and draw negative.
@@ -157,21 +159,60 @@ document.addEventListener('DOMContentLoaded', () => {
             // L'axe X pointe vers le haut du canvas. Pour que le texte aille vers le bas (dans le sens de lecture),
             // on doit le dessiner dans les X négatifs et l'aligner à droite pour l'accrocher à l'OFFSET_Y (0 sur X).
             targetCtx.textAlign = 'right';
-            targetCtx.fillText(data.discipline, 0, -10);
+            targetCtx.fillText(disciplineToDraw, 0, -10);
             targetCtx.restore();
         }
 
-        // 2. Date d'entrée (verticale sur le côté droit, TOUT EN HAUT)
-        if (data.dateEntree) {
+        // 2. Date d'entrée (horizontale, tout en haut à droite)
+        const dateEntreeToDraw = data.dateEntree ? data.dateEntree : (isForPrint ? "" : "JJ/MM");
+        if (dateEntreeToDraw) {
             targetCtx.save();
-            // In preview mode (OFFSET_Y == 0), start the rotation from Y=0 instead of Y=152
-            // since we do a positive Math.PI/2 rotation and draw down.
             const dateY = isForPrint ? 88 : 0;
-            targetCtx.translate(targetCanvas.width - 22, dateY);
-            targetCtx.rotate(Math.PI / 2);
-            targetCtx.font = 'bold 24px Arial, sans-serif';
-            targetCtx.textAlign = 'left';
-            targetCtx.fillText(data.dateEntree, 0, -10);
+            targetCtx.translate(targetCanvas.width - 10, dateY);
+            targetCtx.textAlign = 'right';
+
+            // Extract JJ
+            const parts = dateEntreeToDraw.split('/');
+            const jour = parts[0] || '';
+            const mois = getMonthName(dateEntreeToDraw) || (dateEntreeToDraw === "JJ/MM" ? "mmm" : "");
+
+            targetCtx.font = 'bold 36px Arial, sans-serif';
+            targetCtx.fillText(jour, 0, 0);
+
+            if (mois) {
+                targetCtx.font = 'bold 24px Arial, sans-serif';
+                targetCtx.fillText(mois, 0, 36);
+            }
+
+            // "Chambre seule" alert icon and text
+            if (data.chambreSeule) {
+                const iconY = mois ? 64 : 40;
+
+                // Draw Warning Triangle (monochrome)
+                targetCtx.beginPath();
+                // move to top vertex of triangle
+                targetCtx.moveTo(-20, iconY);
+                // bottom right
+                targetCtx.lineTo(0, iconY + 30);
+                // bottom left
+                targetCtx.lineTo(-40, iconY + 30);
+                targetCtx.closePath();
+                targetCtx.fillStyle = '#000000';
+                targetCtx.fill();
+
+                // Exclamation mark (white)
+                targetCtx.fillStyle = '#ffffff';
+                targetCtx.font = 'bold 20px Arial, sans-serif';
+                targetCtx.textAlign = 'center';
+                targetCtx.fillText('!', -20, iconY + 7); // position Y adjusted for exclamation mark
+
+                // "Ch seule" text
+                targetCtx.fillStyle = '#000000';
+                targetCtx.textAlign = 'right';
+                targetCtx.font = 'bold 18px Arial, sans-serif';
+                targetCtx.fillText('Ch seule', 0, iconY + 36);
+            }
+
             targetCtx.restore();
         }
 
@@ -248,8 +289,24 @@ document.addEventListener('DOMContentLoaded', () => {
             nom: inputNom.value.trim(),
             prenom: inputPrenom.value.trim(),
             dateNaissance: inputDateNaissance.value.trim(),
-            motif: inputMotif.value.trim()
+            motif: inputMotif.value.trim(),
+            chambreSeule: inputChambreSeule.checked
         };
+    }
+
+    function getMonthName(dateStr) {
+        if (!dateStr) return "";
+        const parts = dateStr.split('/');
+        if (parts.length >= 2) {
+            const month = parts[1];
+            const months = {
+                '01': 'jan', '02': 'fev', '03': 'mar', '04': 'avr',
+                '05': 'mai', '06': 'jun', '07': 'jul', '08': 'aou',
+                '09': 'sep', '10': 'oct', '11': 'nov', '12': 'dec'
+            };
+            return months[month] || "";
+        }
+        return "";
     }
 
     // Fonction utilitaire pour formater la date en JJ/MM ou JJ/MM/AAAA
@@ -297,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     [inputDiscipline, inputDateEntree, inputNom, inputPrenom, inputDateNaissance, inputMotif].forEach(input => {
         input.addEventListener('input', () => renderCanvas());
     });
+    inputChambreSeule.addEventListener('change', () => renderCanvas());
 
     // --- CONVERSION CANVAS EN BITMAP 1-BIT AVEC SEUILLAGE AJUSTABLE ---
     /**
