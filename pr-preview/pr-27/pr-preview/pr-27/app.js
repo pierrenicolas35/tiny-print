@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeServices = [...BT_SERVICES];
 
             let deviceOptions = {
-                filters: [{ namePrefix: 'X6h-2CD2' }],
+                acceptAllDevices: true,
                 optionalServices: activeServices
             };
 
@@ -872,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- EVENT LISTENERS ---
-    btnConnect.addEventListener('click', connectBluetoothBLE);
+    btnConnect.addEventListener('click', openModal);
     btnDisconnect.addEventListener('click', disconnectPrinter);
 
     btnCloseModal.addEventListener('click', closeModal);
