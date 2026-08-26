@@ -144,8 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const OFFSET_Y = isForPrint ? 88 : 0;
 
         // 1. Discipline (verticale sur le côté gauche, TOUT EN HAUT)
-        const disciplineToDraw = data.discipline ? data.discipline : (isForPrint ? "" : "DISC");
-        if (disciplineToDraw) {
+        if (data.discipline) {
             targetCtx.save();
             // In preview mode (OFFSET_Y == 0), we must start drawing below our elements.
             // When OFFSET_Y == 88, we start at 88 and draw negative.
@@ -159,22 +158,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // L'axe X pointe vers le haut du canvas. Pour que le texte aille vers le bas (dans le sens de lecture),
             // on doit le dessiner dans les X négatifs et l'aligner à droite pour l'accrocher à l'OFFSET_Y (0 sur X).
             targetCtx.textAlign = 'right';
-            targetCtx.fillText(disciplineToDraw, 0, -10);
+            targetCtx.fillText(data.discipline, 0, -10);
             targetCtx.restore();
         }
 
         // 2. Date d'entrée (horizontale, tout en haut à droite)
-        const dateEntreeToDraw = data.dateEntree ? data.dateEntree : (isForPrint ? "" : "JJ/MM");
-        if (dateEntreeToDraw) {
+        if (data.dateEntree) {
             targetCtx.save();
             const dateY = isForPrint ? 88 : 0;
             targetCtx.translate(targetCanvas.width - 10, dateY);
             targetCtx.textAlign = 'right';
 
             // Extract JJ
-            const parts = dateEntreeToDraw.split('/');
+            const parts = data.dateEntree.split('/');
             const jour = parts[0] || '';
-            const mois = getMonthName(dateEntreeToDraw) || (dateEntreeToDraw === "JJ/MM" ? "mmm" : "");
+            const mois = getMonthName(data.dateEntree);
 
             targetCtx.font = 'bold 36px Arial, sans-serif';
             targetCtx.fillText(jour, 0, 0);
