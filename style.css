@@ -303,7 +303,6 @@ label {
     border: 1px solid #1e293b;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     background-color: #ffffff;
-    image-rendering: pixelated;
 }
 
 .canvas-info {

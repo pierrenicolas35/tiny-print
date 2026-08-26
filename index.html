@@ -23,10 +23,6 @@
                     <span class="status-label">Statut :</span>
                     <span id="bluetoothStatus" class="status-badge status-disconnected">Déconnecté</span>
                 </div>
-                <div class="status-container">
-                    <span class="status-label">Batterie 🔋 :</span>
-                    <span id="printerFeedback" class="status-badge status-disconnected">Inconnu</span>
-                </div>
                 <div class="button-group">
                     <button id="btnConnect" class="btn btn-primary">Connexion Imprimante</button>
                     <button id="btnDisconnect" class="btn btn-danger" disabled>Déconnexion</button>
@@ -81,9 +77,21 @@
                 </div>
             </section>
 
+            <!-- Section Canvas Preview -->
+            <section class="card">
+                <h2>2. Prévisualisation En Direct (384×240 px)</h2>
+                <div class="canvas-wrapper">
+                    <canvas id="labelCanvas" width="384" height="240"></canvas>
+                </div>
+                <p class="canvas-info">Canvas rendu strict à 384 x 240 pixels (Équivalent 50 x 30 mm à 203 DPI)</p>
+            </section>
+        </div>
+
+        <!-- Colonne Droite : Formulaire & File d'attente -->
+        <div class="column">
             <!-- Section Formulaire -->
             <section class="card">
-                <h2>2. Saisie des Informations</h2>
+                <h2>3. Saisie des Informations</h2>
                 <form id="labelForm" onsubmit="return false;">
                     <div class="form-group">
                         <label for="inputDiscipline">Discipline (4 lettres max) :</label>
@@ -129,18 +137,6 @@
                         <button type="button" id="btnPrintDirect" class="btn btn-success" disabled>Imprimer cette étiquette</button>
                     </div>
                 </form>
-            </section>
-        </div>
-
-        <!-- Colonne Droite : Prévisualisation Canvas & File d'attente -->
-        <div class="column">
-            <!-- Section Canvas Preview -->
-            <section class="card">
-                <h2>3. Prévisualisation En Direct (384×240 px)</h2>
-                <div class="canvas-wrapper">
-                    <canvas id="labelCanvas" width="384" height="240"></canvas>
-                </div>
-                <p class="canvas-info">Canvas rendu strict à 384 x 240 pixels (Équivalent 50 x 30 mm à 203 DPI)</p>
             </section>
 
             <!-- Section File d'attente -->
