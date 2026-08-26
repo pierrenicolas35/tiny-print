@@ -717,3 +717,154 @@ label {
 .settings-details[open] .settings-grid {
     margin-top: 15px;
 }
+
+
+/* Compact Layout Modifications */
+.app-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.left-col {
+    flex: 1 1 50%;
+    max-width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.right-col {
+    flex: 1 1 50%;
+    max-width: 50%;
+}
+
+.header-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.header-title {
+    flex: 1 1 auto;
+    margin: 0;
+}
+
+.header-bluetooth {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.header-settings-toggle {
+    margin-left: 10px;
+}
+
+.compact-card {
+    padding: 12px;
+}
+
+.card-queue {
+    margin-top: -5px;
+}
+
+.label-compact {
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+}
+
+.form-control-compact {
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+.form-row-compact {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.compact-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.h2-compact {
+    font-size: 1rem;
+    margin-bottom: 10px;
+}
+
+.h2-queue-compact {
+    font-size: 1rem;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border: none;
+}
+
+.compact-queue-header {
+    margin-bottom: 8px;
+}
+
+.btn-super-small {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+}
+
+.compact-queue {
+    max-height: 100px;
+    padding: 4px;
+}
+
+.compact-empty-msg {
+    padding: 10px 0;
+    font-size: 0.8rem;
+}
+
+.compact-btn-group {
+    margin-top: 8px;
+    gap: 8px;
+}
+
+.btn-small-padding {
+    padding: 6px;
+    font-size: 0.9rem;
+}
+
+.compact-wrapper {
+    padding: 8px;
+    margin-bottom: 5px;
+}
+
+.canvas-info-compact {
+    font-size: 0.75rem;
+}
+
+.toggle-group-compact {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.switch-compact {
+    width: 40px;
+    height: 20px;
+}
+
+.slider-compact {
+    border-radius: 20px;
+}
+.slider-compact:before {
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+}
+input:checked + .slider-compact:before {
+    transform: translateX(20px);
+}
