@@ -723,6 +723,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             btnConnect.disabled = true;
             btnDisconnect.disabled = false;
+            btnDisconnect.style.display = 'inline-block';
+            btnConnect.style.display = 'none';
             btnManualFeed.disabled = false;
             btnPrintDirect.disabled = false;
             updateQueueButtonsState();
@@ -755,6 +757,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
         btnDisconnect.disabled = true;
+        btnDisconnect.style.display = 'none';
+        btnConnect.style.display = 'inline-block';
         btnManualFeed.disabled = true;
         btnPrintDirect.disabled = true;
         updateQueueButtonsState();
