@@ -36,20 +36,118 @@ body {
 
 /* Header */
 .app-header {
-    text-align: center;
-    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    padding: 12px 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.header-titles {
+    flex: 1;
+    min-width: 250px;
 }
 
 .app-header h1 {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     font-weight: 700;
     color: var(--text-color);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .app-header .subtitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
+}
+
+.header-bluetooth {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    flex-wrap: wrap;
+}
+
+.header-btn-group {
+    margin-top: 0;
+}
+
+/* Compact Settings Popover */
+.compact-settings {
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    position: relative;
+}
+
+.compact-settings summary {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    background: var(--bg-color);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.compact-settings[open] .settings-grid {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    padding: 15px;
+    border-radius: var(--border-radius);
+    z-index: 50;
+    width: 320px;
+    grid-template-columns: 1fr 1fr;
+}
+
+.full-width {
+    grid-column: 1 / -1;
+}
+
+/* Compact Cards */
+.compact-card {
+    padding: 15px;
+}
+
+.compact-card h2 {
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.form-group {
+    margin-bottom: 10px;
+}
+
+.form-control {
+    padding: 6px 10px;
+}
+
+/* Queue Compactness */
+.compact-queue {
+    max-height: 120px;
+}
+
+.btn-small-padding {
+    padding: 8px;
+    font-size: 0.9rem;
+}
+
+/* Make Preview sticky on desktop so it stays in view */
+@media (min-width: 768px) {
+    .sticky-preview {
+        position: sticky;
+        top: 20px;
+    }
 }
 
 /* Main Layout */
@@ -303,7 +401,6 @@ label {
     border: 1px solid #1e293b;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     background-color: #ffffff;
-    image-rendering: pixelated;
 }
 
 .canvas-info {
@@ -336,6 +433,11 @@ label {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+/* Fix for popover setting z-index conflict with other elements */
+.header-bluetooth {
+    z-index: 100;
 }
 
 .empty-queue-msg {

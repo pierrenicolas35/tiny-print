@@ -104,9 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
         '0000180a-0000-1000-8000-00805f9b34fb', // Device Information 0x180A
         '00001800-0000-1000-8000-00805f9b34fb', // Generic Access 0x1800
         '00001801-0000-1000-8000-00805f9b34fb', // Generic Attribute 0x1801
-        '0000180f-0000-1000-8000-00805f9b34fb', // Battery Service 0x180F
         // Alias courts (16-bit)
-        0x18f0, 0x18f1, 0xae01, 0xae30, 0xff00, 0xfee7, 0xaf00, 0xaf02, 0xe725, 0x180a, 0x1800, 0x1801, 0x180f
+        0x18f0, 0x18f1, 0xae01, 0xae30, 0xff00, 0xfee7, 0xaf00, 0xaf02, 0xe725, 0x180a, 0x1800, 0x1801
     ];
 
     const BT_CHARACTERISTICS = [
@@ -611,9 +610,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateStatus("Connexion BLE...", "connecting");
 
             const activeServices = [...BT_SERVICES];
-            // Ensure battery service is strictly requested, even if missing from main list somehow
-            if (!activeServices.includes(0x180f)) activeServices.push(0x180f);
-            if (!activeServices.includes('0000180f-0000-1000-8000-00805f9b34fb')) activeServices.push('0000180f-0000-1000-8000-00805f9b34fb');
 
             let deviceOptions = {
                 acceptAllDevices: true,
@@ -721,24 +717,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Tentative de lecture du niveau de batterie
-            try {
-                const batteryService = await bleGattServer.getPrimaryService(0x180f);
-                const batteryLevelChar = await batteryService.getCharacteristic(0x2a19);
-                const batteryValue = await batteryLevelChar.readValue();
-                const batteryPercent = batteryValue.getUint8(0);
-                const feedbackEl = document.getElementById('printerFeedback');
-                if (feedbackEl) {
-                    feedbackEl.textContent = `${batteryPercent}%`;
-                }
-            } catch (e) {
-                console.warn("Impossible de lire le niveau de batterie :", e);
-                const feedbackEl = document.getElementById('printerFeedback');
-                if (feedbackEl) {
-                    feedbackEl.textContent = "Non disponible";
-                }
-            }
-
             // Étape 3 UX : Connecté avec succès
             setModalState('connected', bleDevice.name || "X6h-2CD2");
             updateStatus("Connecté (BLE)", "connected");
@@ -772,11 +750,6 @@ document.addEventListener('DOMContentLoaded', () => {
         bleWriteCharacteristic = null;
         if (bleNotifyCharacteristic) {
             bleNotifyCharacteristic = null;
-        }
-
-        const feedbackEl = document.getElementById('printerFeedback');
-        if (feedbackEl) {
-            feedbackEl.textContent = "Inconnu";
         }
 
         updateStatus("Déconnecté", "disconnected");
