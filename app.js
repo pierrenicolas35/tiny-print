@@ -853,7 +853,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="queue-item-sub">${sub}</span>
                 </div>
                 <div class="queue-item-actions">
-                    <button class="btn btn-small btn-danger" data-id="${item.id}">X</button>
+                    <button class="btn btn-small btn-danger" data-id="${item.id}" aria-label="Supprimer ${title} de la file" title="Supprimer">X</button>
                 </div>
             `;
 
