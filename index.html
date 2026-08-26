@@ -8,32 +8,32 @@
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <header class="app-header">
-        <div class="header-titles">
+    <header class="app-header compact-header">
+        <div class="header-titles" style="flex: 1; display: flex; align-items: center; gap: 10px;">
             <h1>Impression Étiquettes Thermiques BLE</h1>
-            <p class="subtitle">Format 50x30 mm (203 DPI) &bull; Protocole GB01</p>
+            <p class="subtitle" style="margin: 0;">50x30 mm &bull; GB01</p>
         </div>
         <div class="header-bluetooth">
-            <div class="status-container">
+            <div class="status-container" style="margin-bottom: 0;">
                 <span id="bluetoothStatus" class="status-badge status-disconnected">Déconnecté</span>
             </div>
-            <div class="button-group header-btn-group">
+            <div class="button-group header-btn-group" style="margin-top: 0;">
                 <button id="btnConnect" class="btn btn-primary btn-small">Connexion</button>
                 <button id="btnDisconnect" class="btn btn-danger btn-small" disabled>Déconnexion</button>
             </div>
-            <details class="settings-details compact-settings">
-                <summary>Paramètres</summary>
-                <div class="settings-grid">
+            <details class="settings-details compact-settings" style="margin: 0; padding: 0; border: none; background: transparent;">
+                <summary style="padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--bg-color);">Paramètres</summary>
+                <div class="settings-grid" style="position: absolute; right: 0; top: 100%; margin-top: 5px; width: 300px; background: white; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: var(--shadow); z-index: 1000; grid-template-columns: 1fr 1fr;">
                     <div class="form-group">
                         <label for="printerProtocol">Protocole :</label>
-                        <select id="printerProtocol" class="form-control">
+                        <select class="form-control form-control-compact" id="printerProtocol">
                             <option value="escpos">ESC/POS (X6 / WalkPrint)</option>
                             <option value="gb01" selected>Tiny Print / GB01</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="printThreshold">Netteté :</label>
-                        <select id="printThreshold" class="form-control">
+                        <select class="form-control form-control-compact" id="printThreshold">
                             <option value="160">Contraste Élevé</option>
                             <option value="128" selected>Standard (128)</option>
                             <option value="100">Foncé (100)</option>
@@ -41,7 +41,7 @@
                     </div>
                     <div class="form-group">
                         <label for="printDensity">Densité :</label>
-                        <select id="printDensity" class="form-control">
+                        <select class="form-control form-control-compact" id="printDensity">
                             <option value="light">Faible</option>
                             <option value="normal" selected>Normale</option>
                             <option value="dark">Intense</option>
@@ -49,13 +49,13 @@
                     </div>
                     <div class="form-group">
                         <label for="interLabelFeed">Inter-étiquettes :</label>
-                        <input type="number" id="interLabelFeed" class="form-control" value="20" min="0" max="200">
+                        <input class="form-control form-control-compact" type="number" id="interLabelFeed" value="20" min="0" max="200">
                     </div>
                     <div class="form-group">
                         <label for="postPrintFeed">Avance finale :</label>
-                        <input type="number" id="postPrintFeed" class="form-control" value="20" min="0" max="300">
+                        <input class="form-control form-control-compact" type="number" id="postPrintFeed" value="20" min="0" max="300">
                     </div>
-                    <div class="form-group full-width">
+                    <div class="form-group full-width" style="grid-column: 1 / -1;">
                         <button id="btnManualFeed" class="btn btn-secondary btn-small" disabled style="width:100%;">Avancer le papier</button>
                     </div>
                 </div>
@@ -65,81 +65,83 @@
 
     <main class="app-container">
         <!-- Colonne Gauche : Formulaire & File d'attente -->
-        <div class="column">
+        <div class="column left-col">
             <!-- Section Formulaire -->
             <section class="card compact-card">
-                <h2>1. Saisie des Informations</h2>
+                <h2 class="h2-compact">1. Saisie des Informations</h2>
                 <form id="labelForm" onsubmit="return false;">
-                    <div class="form-group">
-                        <label for="inputDiscipline">Discipline (4 lettres max) :</label>
-                        <input type="text" id="inputDiscipline" class="form-control" placeholder="ex: CARD" maxlength="4">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inputDateEntree">Date d'entrée :</label>
-                        <input type="text" id="inputDateEntree" class="form-control" placeholder="JJ/MM" maxlength="5">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group col">
-                            <label for="inputNom">NOM :</label>
-                            <input type="text" id="inputNom" class="form-control" placeholder="NOM">
+                    <div class="form-row form-row-compact">
+                        <div class="form-group col compact-group">
+                            <label for="inputDiscipline" class="label-compact">Discipline (4 lettres max) :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputDiscipline" placeholder="ex: CARD" maxlength="4">
                         </div>
-                        <div class="form-group col">
-                            <label for="inputPrenom">Prénom :</label>
-                            <input type="text" id="inputPrenom" class="form-control" placeholder="Prénom">
+                        <div class="form-group col compact-group">
+                            <label for="inputDateEntree" class="label-compact">Date d'entrée :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputDateEntree" placeholder="JJ/MM" maxlength="5">
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="inputDateNaissance">Date de naissance :</label>
-                        <input type="text" id="inputDateNaissance" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10">
+                    <div class="form-row form-row-compact">
+                        <div class="form-group col compact-group">
+                            <label for="inputNom" class="label-compact">NOM :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputNom" placeholder="NOM">
+                        </div>
+                        <div class="form-group col compact-group">
+                            <label for="inputPrenom" class="label-compact">Prénom :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputPrenom" placeholder="Prénom">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="inputMotif">Motif d'admission :</label>
-                        <input type="text" id="inputMotif" class="form-control" placeholder="ex: Consultation" maxlength="120">
+                    <div class="form-row form-row-compact">
+                        <div class="form-group col compact-group">
+                            <label for="inputDateNaissance" class="label-compact">Date de naissance :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputDateNaissance" placeholder="JJ/MM/AAAA" maxlength="10">
+                        </div>
+                        <div class="form-group col compact-group">
+                            <label for="inputMotif" class="label-compact">Motif d'admission :</label>
+                            <input class="form-control form-control-compact" type="text" id="inputMotif" placeholder="ex: Consultation" maxlength="120">
+                        </div>
                     </div>
 
-                    <div class="form-group toggle-group">
-                        <label for="inputChambreSeule">Chambre seule :</label>
-                        <label class="switch">
+                    <div class="form-group toggle-group toggle-group-compact">
+                        <label for="inputChambreSeule" class="label-compact">Chambre seule :</label>
+                        <label class="switch switch-compact">
                             <input type="checkbox" id="inputChambreSeule">
-                            <span class="slider round"></span>
+                            <span class="slider round slider-compact"></span>
                         </label>
                     </div>
 
-                    <div class="button-group">
-                        <button type="button" id="btnAddQueue" class="btn btn-secondary">+ Ajouter à la file</button>
-                        <button type="button" id="btnPrintDirect" class="btn btn-success" disabled>Imprimer cette étiquette</button>
+                    <div class="button-group compact-btn-group">
+                        <button type="button" id="btnAddQueue" class="btn btn-secondary btn-small">+ Ajouter à la file</button>
+                        <button type="button" id="btnPrintDirect" class="btn btn-success btn-small" disabled>Imprimer cette étiquette</button>
                     </div>
                 </form>
             </section>
 
             <!-- Section File d'attente -->
-            <section class="card compact-card">
-                <div class="queue-header">
-                    <h2>3. File d'attente (<span id="queueCount">0</span>)</h2>
-                    <button id="btnClearQueue" class="btn btn-small btn-danger" disabled>Vider</button>
+            <section class="card compact-card card-queue">
+                <div class="queue-header compact-queue-header">
+                    <h2 class="h2-queue-compact">3. File d'attente (<span id="queueCount">0</span>)</h2>
+                    <button id="btnClearQueue" class="btn btn-small btn-danger btn-super-small" disabled>Vider</button>
                 </div>
                 <div id="queueList" class="queue-list compact-queue">
-                    <p class="empty-queue-msg">Aucune étiquette dans la file d'attente.</p>
+                    <p class="empty-queue-msg label-compact">Aucune étiquette dans la file d'attente.</p>
                 </div>
-                <div class="button-group">
+                <div class="button-group compact-btn-group">
                     <button id="btnPrintBatch" class="btn btn-success btn-large btn-small-padding" disabled>Imprimer la file</button>
                 </div>
             </section>
         </div>
 
         <!-- Colonne Droite : Prévisualisation Canvas -->
-        <div class="column">
+        <div class="column right-col">
             <!-- Section Canvas Preview -->
-            <section class="card compact-card sticky-preview">
-                <h2>2. Prévisualisation (384×240 px)</h2>
+            <section class="card compact-card sticky-preview" style="padding: 12px;">
+                <h2 class="h2-compact">2. Prévisualisation (384×240 px)</h2>
                 <div class="canvas-wrapper compact-wrapper">
                     <canvas id="labelCanvas" width="384" height="240"></canvas>
                 </div>
-                <p class="canvas-info">Rendu strict 50x30 mm à 203 DPI</p>
+                <p class="canvas-info canvas-info-compact">Rendu strict 50x30 mm à 203 DPI</p>
             </section>
         </div>
     </main>
