@@ -28,7 +28,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.5;
-    padding: 20px;
+    padding: 10px 20px;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
@@ -39,9 +39,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     background: var(--card-bg);
-    padding: 12px 20px;
+    padding: 8px 12px;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
     border: 1px solid var(--border-color);
@@ -172,7 +172,7 @@ body {
 .card {
     background: var(--card-bg);
     border-radius: var(--border-radius);
-    padding: 20px;
+    padding: 15px;
     box-shadow: var(--shadow);
     border: 1px solid var(--border-color);
 }
@@ -228,12 +228,13 @@ body {
 
 /* Form Elements */
 .form-group {
-    margin-bottom: 14px;
+    margin-bottom: 8px;
 }
 
 .form-row {
     display: flex;
     gap: 12px;
+    margin-bottom: 8px;
 }
 
 .form-group.col {
@@ -314,7 +315,7 @@ label {
     padding: 8px 12px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
 }
@@ -674,10 +675,24 @@ label {
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+    .app-container {
+        flex-direction: column;
+        flex-wrap: wrap;
+    }
+
+    .left-col, .right-col {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
+
 @media (max-width: 600px) {
     body { padding: 10px; }
-    .form-row { flex-direction: column; gap: 0; }
+    .form-row, .form-row-compact { flex-direction: column; gap: 0; }
     .canvas-wrapper { padding: 8px; }
+    .header-content { flex-direction: column; align-items: stretch; }
+    .header-bluetooth { justify-content: space-between; margin-top: 10px; }
 }
 
 /* Styling details and summary */
@@ -729,16 +744,16 @@ label {
 }
 
 .left-col {
-    flex: 1 1 50%;
-    max-width: 50%;
+    flex: 1 1 60%;
+    max-width: 60%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
 }
 
 .right-col {
-    flex: 1 1 50%;
-    max-width: 50%;
+    flex: 1 1 40%;
+    max-width: 40%;
 }
 
 .header-content {
