@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputDateNaissance = document.getElementById('inputDateNaissance');
     const inputMotif = document.getElementById('inputMotif');
     const inputChambreSeule = document.getElementById('inputChambreSeule');
+    const btnResetForm = document.getElementById('btnResetForm');
 
     // Bluetooth UI
     const statusBadge = document.getElementById('bluetoothStatus');
@@ -354,6 +355,17 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => renderCanvas());
     });
     inputChambreSeule.addEventListener('change', () => renderCanvas());
+
+    btnResetForm.addEventListener('click', () => {
+        inputDiscipline.value = '';
+        inputDateEntree.value = '';
+        inputNom.value = '';
+        inputPrenom.value = '';
+        inputDateNaissance.value = '';
+        inputMotif.value = '';
+        inputChambreSeule.checked = false;
+        renderCanvas();
+    });
 
     // --- CONVERSION CANVAS EN BITMAP 1-BIT AVEC SEUILLAGE AJUSTABLE ---
     /**
