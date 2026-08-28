@@ -216,11 +216,43 @@ document.addEventListener('DOMContentLoaded', () => {
             targetCtx.restore();
         }
 
+        // Détermination du nombre de lignes pour le motif (police fixe 24px)
+        const motifText = data.motif ? data.motif : "Motif d'admission";
+        const motifFontSize = 24;
+        targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
+
+        let motifLines = [motifText];
+        let needsTwoLines = false;
+
+        if (targetCtx.measureText(motifText).width > 280) {
+            needsTwoLines = true;
+            const words = motifText.split(' ');
+            let line1 = '';
+            let line2 = '';
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line1 + (line1 === '' ? '' : ' ') + words[i];
+                if (targetCtx.measureText(testLine).width > 280) {
+                    if (i === 0) {
+                        line1 = testLine;
+                        line2 = words.slice(i + 1).join(' ');
+                    } else {
+                        line2 = words.slice(i).join(' ');
+                    }
+                    break;
+                }
+                line1 = testLine;
+            }
+            motifLines = [line1, line2];
+        }
+
+        // Facteur de réduction si le motif est sur 2 lignes
+        const baseScale = needsTwoLines ? 0.75 : 1;
+
         // 3. NOM (au centre, grand/gras) - Tout en haut
         targetCtx.save();
         targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = 48;
+        let nomFontSize = Math.floor(48 * baseScale);
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -228,12 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
             nomFontSize -= 2;
             targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
         }
-        const nomY = OFFSET_Y; // Tout en haut (y=0)
+        const nomY = OFFSET_Y; // Tout en haut
         targetCtx.fillText(nomText, targetCanvas.width / 2, nomY, 280);
 
         // 4. Prénom (au centre, sous le NOM)
         const prenomText = data.prenom ? data.prenom : "Prénom";
-        let prenomFontSize = 38;
+        let prenomFontSize = Math.floor(38 * baseScale);
         targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge
@@ -246,24 +278,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        const dobFontSize = 28;
+        const dobFontSize = Math.floor(28 * baseScale);
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
         const dobY = prenomY + prenomFontSize + 4;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
-        // 6. Motif d'admission (en bas au centre, limité à 1 ligne)
-        const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifY = dobY + dobFontSize + 6;
-        let motifFontSize = 24;
+        // 6. Motif d'admission (en bas au centre)
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
+        const motifY = dobY + dobFontSize + 6;
 
-        // Réduire la police si le texte est trop long
-        while (targetCtx.measureText(motifText).width > 280 && motifFontSize > 14) {
-            motifFontSize -= 1;
-            targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
+        if (motifLines.length === 1) {
+            targetCtx.fillText(motifLines[0], targetCanvas.width / 2, motifY, 280);
+        } else {
+            targetCtx.fillText(motifLines[0], targetCanvas.width / 2, motifY, 280);
+            targetCtx.fillText(motifLines[1], targetCanvas.width / 2, motifY + motifFontSize + 2, 280);
         }
-
-        targetCtx.fillText(motifText, targetCanvas.width / 2, motifY, 280);
 
         if (!isForPrint) {
             targetCtx.save();
