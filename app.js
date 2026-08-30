@@ -908,8 +908,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 await printCanvas(printCanvasEl, feedLines);
             }
-            alert("Impression du lot terminée avec succès !");
-            clearQueue();
+            if (confirm("Impression terminée. Voulez-vous effacer la liste d'étiquettes ?")) {
+                clearQueue();
+            }
         } catch (error) {
             console.error("Erreur lors de l'impression du lot:", error);
             alert("Erreur lors de l'impression par lot : " + error.message);
