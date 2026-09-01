@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Détermination du nombre de lignes pour le motif (police fixe 24px)
         const motifText = data.motif ? data.motif : "Motif d'admission";
-        const motifFontSize = 24;
+        const motifFontSize = 28;
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
 
         let motifLines = [motifText];
@@ -252,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.save();
         targetCtx.textAlign = 'center';
         const nomText = data.nom ? data.nom.toUpperCase() : "NOM";
-        let nomFontSize = Math.floor(48 * baseScale);
+        let nomFontSize = Math.floor(46 * baseScale);
         targetCtx.font = `bold ${nomFontSize}px Arial, sans-serif`;
 
         // On restreint la largeur pour laisser de la marge pour Discipline et Date
@@ -273,19 +273,19 @@ document.addEventListener('DOMContentLoaded', () => {
             prenomFontSize -= 2;
             targetCtx.font = `${prenomFontSize}px Arial, sans-serif`;
         }
-        const prenomY = nomY + nomFontSize + 4;
+        const prenomY = nomY + nomFontSize + 2;
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
         const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
-        const dobFontSize = Math.floor(28 * baseScale);
+        const dobFontSize = Math.floor(27 * baseScale);
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
-        const dobY = prenomY + prenomFontSize + 4;
+        const dobY = prenomY + prenomFontSize + 2;
         targetCtx.fillText(dobText, targetCanvas.width / 2, dobY);
 
         // 6. Motif d'admission (en bas au centre)
         targetCtx.font = `${motifFontSize}px Arial, sans-serif`;
-        const motifY = dobY + dobFontSize + 6;
+        const motifY = dobY + dobFontSize + 4;
 
         if (motifLines.length === 1) {
             targetCtx.fillText(motifLines[0], targetCanvas.width / 2, motifY, 280);
