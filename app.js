@@ -277,7 +277,13 @@ document.addEventListener('DOMContentLoaded', () => {
         targetCtx.fillText(prenomText, targetCanvas.width / 2, prenomY, 280);
 
         // 5. Date de naissance (au centre, sous prénom)
-        const dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
+        let dobText = data.dateNaissance ? `${data.dateNaissance}` : "JJ/MM/AAAA";
+        if (data.dateNaissance && data.dateNaissance.length === 10) {
+            const ageStr = calculateAge(data.dateNaissance);
+            if (ageStr) {
+                dobText += ` (${ageStr})`;
+            }
+        }
         const dobFontSize = Math.floor(27 * baseScale);
         targetCtx.font = `${dobFontSize}px Arial, sans-serif`;
         const dobY = prenomY + prenomFontSize + 2;
@@ -321,6 +327,48 @@ document.addEventListener('DOMContentLoaded', () => {
             motif: inputMotif.value.trim(),
             chambreSeule: inputChambreSeule.checked
         };
+    }
+
+
+    function calculateAge(dateStr) {
+        if (!dateStr || dateStr.length !== 10) return "";
+        const parts = dateStr.split('/');
+        if (parts.length !== 3) return "";
+
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+
+        if (isNaN(day) || isNaN(month) || isNaN(year)) return "";
+
+const now = new Date();
+const dob = new Date(year, month, day);
+if (dob.getFullYear() !== year || dob.getMonth() !== month || dob.getDate() !== day) return "";
+if (dob > now) return "";
+        let age = now.getFullYear() - dob.getFullYear();
+        let m = now.getMonth() - dob.getMonth();
+
+        if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) {
+            age--;
+        }
+
+        if (age < 0 || age > 150) return "";
+
+        if (age === 0) {
+            if (m < 0) m += 12;
+            if (now.getDate() < dob.getDate()) {
+                m--;
+                if (m < 0) m += 12;
+            }
+            if (m === 0) {
+const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+const utcDob = Date.UTC(dob.getFullYear(), dob.getMonth(), dob.getDate());
+const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
+            }
+            return `${m} mois`;
+        }
+
+        return `${age} an${age > 1 ? 's' : ''}`;
     }
 
     function getMonthName(dateStr) {
