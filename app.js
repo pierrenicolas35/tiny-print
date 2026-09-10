@@ -361,9 +361,9 @@ if (dob > now) return "";
                 if (m < 0) m += 12;
             }
             if (m === 0) {
-                const timeDiff = now.getTime() - dob.getTime();
-                const days = Math.floor(timeDiff / (1000 * 3600 * 24));
-                if (days >= 0) return `${days} jour${days > 1 ? 's' : ''}`;
+const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+const utcDob = Date.UTC(dob.getFullYear(), dob.getMonth(), dob.getDate());
+const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             }
             return `${m} mois`;
         }
