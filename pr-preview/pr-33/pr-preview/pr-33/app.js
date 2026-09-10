@@ -341,10 +341,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isNaN(day) || isNaN(month) || isNaN(year)) return "";
 
-const now = new Date();
-const dob = new Date(year, month, day);
-if (dob.getFullYear() !== year || dob.getMonth() !== month || dob.getDate() !== day) return "";
-if (dob > now) return "";
+        const dob = new Date(year, month, day);
+        const now = new Date();
+
         let age = now.getFullYear() - dob.getFullYear();
         let m = now.getMonth() - dob.getMonth();
 
