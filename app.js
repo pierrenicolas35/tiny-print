@@ -444,6 +444,1110 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         renderCanvas();
     });
 
+    /* ============================================================
+     *  ÉTIQUETTE EN SAISIE LIBRE
+     *  Même format (50 × 30 mm / 384 × 240 px) que l'étiquette standard
+     *  mais : saisie libre, placement libre (glisser-déposer ou X/Y),
+     *  mise en forme libre (police, taille, style, rotation, inversion,
+     *  encadrement, interligne, espacement) et options d'étiquette
+     *  (cadre, zone imprimable, repères, magnétisme, modèles).
+     *
+     *  Convention d'impression : identique à l'étiquette standard.
+     *  L'imprimante consomme d'abord l'avance papier (88 px = 11 mm) puis
+     *  reçoit la zone imprimable (152 px = 19 mm). Le rendu papier applique
+     *  donc la rotation 180° et un décalage vertical de `options.offset`.
+     * ============================================================ */
+
+    const FREE_W = 384;
+    const FREE_H = 240;
+    const FREE_MODEL_KEY = 'tinyprint.etiquette-libre.v1';
+    const FREE_TEMPLATES_KEY = 'tinyprint.etiquette-libre.modeles.v1';
+
+    const FREE_FONTS = [
+        { value: 'Arial, sans-serif', label: 'Arial (bâton)' },
+        { value: 'Verdana, sans-serif', label: 'Verdana' },
+        { value: '"Trebuchet MS", sans-serif', label: 'Trebuchet MS' },
+        { value: '"Courier New", monospace', label: 'Courier (machine)' },
+        { value: '"Times New Roman", serif', label: 'Times (serif)' },
+        { value: 'Georgia, serif', label: 'Georgia' },
+        { value: 'Impact, sans-serif', label: 'Impact (très large)' }
+    ];
+
+    // Modèles prêts à l'emploi (mêmes possibilités que la saisie manuelle)
+    const FREE_BUILTIN_TEMPLATES = {
+        'Deux lignes centrées': [
+            { text: 'TITRE', x: 192, y: 18, size: 42, bold: true, align: 'center' },
+            { text: 'Sous-titre', x: 192, y: 70, size: 26, align: 'center' }
+        ],
+        'Trois lignes + trait': [
+            { text: 'SERVICE', x: 192, y: 8, size: 22, bold: true, align: 'center' },
+            { type: 'line', x: 40, y: 34, width: 304, thickness: 3 },
+            { text: 'Ligne 1', x: 192, y: 44, size: 32, bold: true, align: 'center' },
+            { text: 'Ligne 2', x: 192, y: 84, size: 26, align: 'center' },
+            { text: 'Ligne 3', x: 192, y: 118, size: 22, align: 'center' }
+        ],
+        'Bandeau inversé': [
+            { text: 'INFORMATION', x: 192, y: 6, size: 30, bold: true, align: 'center', invert: true },
+            { text: 'Texte libre', x: 192, y: 52, size: 26, align: 'center' },
+            { text: 'complément', x: 192, y: 88, size: 22, align: 'center' }
+        ],
+        'Étiquette patient (type standard)': [
+            { text: 'DISC', x: 12, y: 0, size: 24, bold: true, rotate: 270, align: 'right' },
+            { text: 'JJ', x: 374, y: 0, size: 36, bold: true, align: 'right' },
+            { text: 'MMM', x: 374, y: 34, size: 24, bold: true, align: 'right' },
+            { text: 'NOM', x: 192, y: 0, size: 46, bold: true, align: 'center' },
+            { text: 'Prénom', x: 192, y: 48, size: 38, align: 'center' },
+            { text: 'JJ/MM/AAAA', x: 192, y: 88, size: 27, align: 'center' },
+            { text: "Motif d'admission", x: 192, y: 119, size: 24, align: 'center', maxWidth: 280 }
+        ],
+        'Mention + cadre': [
+            { text: 'À CONSERVER', x: 192, y: 26, size: 40, bold: true, align: 'center' },
+            { text: 'Pochette / Dossier', x: 192, y: 80, size: 26, align: 'center' }
+        ]
+    };
+
+    // --- Références DOM ---
+    const freeModal = document.getElementById('freeModal');
+    const btnOpenFree = document.getElementById('btnOpenFree');
+    const btnCloseFreeModal = document.getElementById('btnCloseFreeModal');
+    const freeCanvas = document.getElementById('freeCanvas');
+    const freeCtx = freeCanvas.getContext('2d');
+    const freeLayersEl = document.getElementById('freeLayers');
+    const freeLayerCountEl = document.getElementById('freeLayerCount');
+    const freeEditorEl = document.getElementById('freeEditor');
+    const freeEditorEmptyEl = document.getElementById('freeEditorEmpty');
+    const freeWarningEl = document.getElementById('freeWarning');
+    const freeLineOptionsEl = document.getElementById('freeLineOptions');
+    const freeTextEl = document.getElementById('freeText');
+    const freeFontEl = document.getElementById('freeFont');
+    const freeSizeEl = document.getElementById('freeSize');
+    const freeSizeNumEl = document.getElementById('freeSizeNum');
+    const freeBoldEl = document.getElementById('freeBold');
+    const freeItalicEl = document.getElementById('freeItalic');
+    const freeUnderlineEl = document.getElementById('freeUnderline');
+    const freeInvertEl = document.getElementById('freeInvert');
+    const freeLineHeightEl = document.getElementById('freeLineHeight');
+    const freeSpacingEl = document.getElementById('freeSpacing');
+    const freeMaxWidthEl = document.getElementById('freeMaxWidth');
+    const freeBoxEl = document.getElementById('freeBox');
+    const freePosXEl = document.getElementById('freePosX');
+    const freePosYEl = document.getElementById('freePosY');
+    const freeLineWidthEl = document.getElementById('freeLineWidth');
+    const freeLineThicknessEl = document.getElementById('freeLineThickness');
+    const freeBorderEl = document.getElementById('freeBorder');
+    const freeBorderWidthEl = document.getElementById('freeBorderWidth');
+    const freeMarginEl = document.getElementById('freeMargin');
+    const freeGridEl = document.getElementById('freeGrid');
+    const freeOffsetEl = document.getElementById('freeOffset');
+    const freeGuidesEl = document.getElementById('freeGuides');
+    const freeTemplateSelectEl = document.getElementById('freeTemplateSelect');
+    const btnFreeAddText = document.getElementById('btnFreeAddText');
+    const btnFreeAddLine = document.getElementById('btnFreeAddLine');
+    const btnFreeDuplicate = document.getElementById('btnFreeDuplicate');
+    const btnFreeFromForm = document.getElementById('btnFreeFromForm');
+    const btnFreeReset = document.getElementById('btnFreeReset');
+    const btnFreeSaveTemplate = document.getElementById('btnFreeSaveTemplate');
+    const btnFreeDeleteTemplate = document.getElementById('btnFreeDeleteTemplate');
+    const btnFreeAddQueue = document.getElementById('btnFreeAddQueue');
+    const btnFreePrint = document.getElementById('btnFreePrint');
+
+    let freeSeq = 1;
+    let freeSel = null;
+    let freeDrag = null;
+    let freeModel = null;
+
+    // Contexte hors écran utilisé pour mesurer le texte (police, retour à la ligne…)
+    const freeMeasureCanvas = document.createElement('canvas');
+    freeMeasureCanvas.width = FREE_W;
+    freeMeasureCanvas.height = FREE_H;
+    const freeMeasureCtx = freeMeasureCanvas.getContext('2d');
+
+    function freeNewModel() {
+        return {
+            version: 1,
+            options: { offset: 88, guides: true, grid: 4, border: 'none', borderWidth: 3, margin: 6 },
+            elements: []
+        };
+    }
+
+    function freeMakeElement(props = {}) {
+        const el = {
+            id: freeSeq++,
+            type: props.type === 'line' ? 'line' : 'text',
+            text: typeof props.text === 'string' ? props.text : '',
+            x: Number.isFinite(props.x) ? props.x : 192,
+            y: Number.isFinite(props.y) ? props.y : 20,
+            size: Number.isFinite(props.size) ? props.size : 26,
+            font: props.font || 'Arial, sans-serif',
+            bold: !!props.bold,
+            italic: !!props.italic,
+            underline: !!props.underline,
+            align: props.align === 'left' || props.align === 'right' ? props.align : 'center',
+            rotate: Number.isFinite(props.rotate) ? props.rotate : 0,
+            invert: !!props.invert,
+            lineHeight: Number.isFinite(props.lineHeight) ? props.lineHeight : 1.1,
+            maxWidth: Number.isFinite(props.maxWidth) ? props.maxWidth : 0,
+            spacing: Number.isFinite(props.spacing) ? props.spacing : 0,
+            box: props.box || 'none',
+            hidden: !!props.hidden,
+            width: Number.isFinite(props.width) ? props.width : 200,
+            thickness: Number.isFinite(props.thickness) ? props.thickness : 3
+        };
+        return el;
+    }
+
+    function freeElementsFromPreset(liste) {
+        return liste.map((props) => freeMakeElement(props));
+    }
+
+    function freeDeepCopy(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function freeClamp(valeur, min, max) {
+        return Math.min(max, Math.max(min, valeur));
+    }
+
+    // --- MOTEUR DE RENDU ---
+
+    function freeSetFont(targetCtx, el) {
+        targetCtx.font = `${el.italic ? 'italic ' : ''}${el.bold ? 'bold ' : ''}${el.size}px ${el.font}`;
+        // Espacement des lettres (ignoré silencieusement par les navigateurs qui ne le gèrent pas)
+        try { targetCtx.letterSpacing = `${Number(el.spacing) || 0}px`; } catch (e) { /* non supporté */ }
+    }
+
+    function freeWrapLines(targetCtx, texte, maxWidth) {
+        const paragraphes = String(texte == null ? '' : texte).split('\n');
+        if (!maxWidth || maxWidth <= 0) return paragraphes;
+        const lignes = [];
+        paragraphes.forEach((paragraphe) => {
+            const mots = paragraphe.split(/\s+/).filter((m) => m !== '');
+            if (mots.length === 0) { lignes.push(''); return; }
+            let courante = '';
+            mots.forEach((mot) => {
+                const essai = courante ? courante + ' ' + mot : mot;
+                if (courante && targetCtx.measureText(essai).width > maxWidth) {
+                    lignes.push(courante);
+                    courante = mot;
+                } else {
+                    courante = essai;
+                }
+            });
+            lignes.push(courante);
+        });
+        return lignes;
+    }
+
+    // Boîte de l'élément dans son propre repère (avant translation / rotation)
+    // ignorePad : n'inclut pas la marge décorative (fond inversé / cadre) — utile
+    // pour distinguer le contenu réel des éléments sans habillage.
+    function freeLocalBox(targetCtx, el, ignorePad = false) {
+        if (el.type === 'line') {
+            const epaisseur = Math.max(1, Number(el.thickness) || 1);
+            const largeur = Math.max(1, Number(el.width) || 1);
+            return { x0: 0, y0: -epaisseur / 2, x1: largeur, y1: epaisseur / 2, pad: 0, lines: [], lineHeight: 0 };
+        }
+        freeSetFont(targetCtx, el);
+        const lignes = freeWrapLines(targetCtx, el.text, Number(el.maxWidth) || 0);
+        let largeur = 0;
+        lignes.forEach((ligne) => { largeur = Math.max(largeur, targetCtx.measureText(ligne).width); });
+        const interligne = el.size * (Number(el.lineHeight) || 1.1);
+        const hauteur = (lignes.length - 1) * interligne + el.size;
+        const pad = ignorePad ? 0 : (el.invert || el.box === 'rect' ? Math.max(2, Math.round(el.size * 0.16)) : 2);
+        const dx = el.align === 'center' ? -largeur / 2 : (el.align === 'right' ? -largeur : 0);
+        return { x0: dx - pad, y0: -pad, x1: dx + largeur + pad, y1: hauteur + pad, pad: pad, lines: lignes, lineHeight: interligne, largeur: largeur, hauteur: hauteur };
+    }
+
+    function freeElementBBox(targetCtx, el, ignorePad = false) {
+        const boite = freeLocalBox(targetCtx, el, ignorePad);
+        const angle = (el.rotate || 0) * Math.PI / 180;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const coins = [[boite.x0, boite.y0], [boite.x1, boite.y0], [boite.x1, boite.y1], [boite.x0, boite.y1]];
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        coins.forEach(([px, py]) => {
+            const x = el.x + px * cos - py * sin;
+            const y = el.y + px * sin + py * cos;
+            minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        });
+        return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+    }
+
+    function freeHitTest(targetCtx, px, py) {
+        for (let i = freeModel.elements.length - 1; i >= 0; i--) {
+            const el = freeModel.elements[i];
+            if (el.hidden) continue;
+            const angle = -(el.rotate || 0) * Math.PI / 180;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const dx = px - el.x;
+            const dy = py - el.y;
+            const lx = dx * cos - dy * sin;
+            const ly = dx * sin + dy * cos;
+            const boite = freeLocalBox(targetCtx, el);
+            const marge = 3;
+            if (lx >= boite.x0 - marge && lx <= boite.x1 + marge && ly >= boite.y0 - marge && ly <= boite.y1 + marge) return el;
+        }
+        return null;
+    }
+
+    function freeDrawElement(targetCtx, el, offsetY) {
+        if (el.hidden) return;
+        const boite = freeLocalBox(targetCtx, el);
+
+        targetCtx.save();
+        targetCtx.translate(el.x, el.y + offsetY);
+        if (el.rotate) targetCtx.rotate(el.rotate * Math.PI / 180);
+
+        if (el.type === 'line') {
+            const epaisseur = Math.max(1, Number(el.thickness) || 1);
+            const largeur = Math.max(1, Number(el.width) || 1);
+            targetCtx.fillStyle = '#000000';
+            targetCtx.fillRect(0, -epaisseur / 2, largeur, epaisseur);
+            targetCtx.restore();
+            return;
+        }
+
+        freeSetFont(targetCtx, el);
+        targetCtx.textAlign = el.align;
+        targetCtx.textBaseline = 'top';
+
+        // Aplat inversé (texte blanc sur fond noir)
+        if (el.invert) {
+            targetCtx.fillStyle = '#000000';
+            targetCtx.fillRect(boite.x0, boite.y0, boite.x1 - boite.x0, boite.y1 - boite.y0);
+        }
+
+        // Cadre autour de l'élément
+        if (el.box === 'rect') {
+            targetCtx.strokeStyle = el.invert ? '#ffffff' : '#000000';
+            targetCtx.lineWidth = 2;
+            targetCtx.strokeRect(boite.x0, boite.y0, boite.x1 - boite.x0, boite.y1 - boite.y0);
+        }
+
+        targetCtx.fillStyle = el.invert ? '#ffffff' : '#000000';
+        boite.lines.forEach((ligne, index) => {
+            const ly = index * boite.lineHeight;
+            if (ligne !== '') targetCtx.fillText(ligne, 0, ly);
+            if (el.underline && ligne !== '') {
+                const largeurTexte = targetCtx.measureText(ligne).width;
+                const ux = el.align === 'center' ? -largeurTexte / 2 : (el.align === 'right' ? -largeurTexte : 0);
+                targetCtx.fillRect(ux, ly + el.size * 0.94, largeurTexte, Math.max(1, Math.round(el.size / 14)));
+            }
+        });
+
+        if (el.box === 'below' || el.box === 'top') {
+            const epaisseur = Math.max(1, Math.round(el.size / 12));
+            const yTrait = el.box === 'below' ? boite.y1 - boite.pad / 2 : boite.y0 + boite.pad / 2 - epaisseur;
+            targetCtx.fillRect(boite.x0 + boite.pad, yTrait, boite.x1 - boite.x0 - 2 * boite.pad, epaisseur);
+        }
+
+        targetCtx.restore();
+    }
+
+    function freeRoundRectPath(targetCtx, x, y, w, h, r) {
+        const rayon = Math.min(r, w / 2, h / 2);
+        targetCtx.beginPath();
+        if (typeof targetCtx.roundRect === 'function') {
+            targetCtx.roundRect(x, y, w, h, rayon);
+            return;
+        }
+        targetCtx.moveTo(x + rayon, y);
+        targetCtx.lineTo(x + w - rayon, y);
+        targetCtx.quadraticCurveTo(x + w, y, x + w, y + rayon);
+        targetCtx.lineTo(x + w, y + h - rayon);
+        targetCtx.quadraticCurveTo(x + w, y + h, x + w - rayon, y + h);
+        targetCtx.lineTo(x + rayon, y + h);
+        targetCtx.quadraticCurveTo(x, y + h, x, y + h - rayon);
+        targetCtx.lineTo(x, y + rayon);
+        targetCtx.quadraticCurveTo(x, y, x + rayon, y);
+        targetCtx.closePath();
+    }
+
+    // Cadre dessiné autour de la zone imprimable (dans le repère de conception)
+    function freeDrawBorder(targetCtx, model, offsetY) {
+        const style = model.options.border;
+        if (!style || style === 'none') return;
+
+        const marge = Math.max(0, Number(model.options.margin) || 0);
+        const epaisseur = Math.max(1, Number(model.options.borderWidth) || 3);
+        const zone = FREE_H - (Number(model.options.offset) || 0);
+        const x = marge;
+        const y = marge + offsetY;
+        const w = FREE_W - 2 * marge;
+        const h = zone - 2 * marge;
+        if (w <= 0 || h <= 0) return;
+
+        targetCtx.save();
+        targetCtx.fillStyle = '#000000';
+        targetCtx.strokeStyle = '#000000';
+
+        if (style === 'rounded') {
+            targetCtx.lineWidth = epaisseur;
+            freeRoundRectPath(targetCtx, x, y, w, h, Math.min(16, h / 3));
+            targetCtx.stroke();
+        } else if (style === 'double') {
+            targetCtx.lineWidth = epaisseur;
+            targetCtx.strokeRect(x, y, w, h);
+            const inset = epaisseur + 2;
+            targetCtx.strokeRect(x + inset, y + inset, w - 2 * inset, h - 2 * inset);
+        } else {
+            targetCtx.lineWidth = style === 'thick' ? epaisseur * 2 : epaisseur;
+            targetCtx.strokeRect(x, y, w, h);
+        }
+        targetCtx.restore();
+    }
+
+    function renderFreeCanvas(model, isForPrint, targetCtx, targetCanvas) {
+        const W = targetCanvas.width;
+        const H = targetCanvas.height;
+
+        targetCtx.save();
+        targetCtx.fillStyle = '#ffffff';
+        targetCtx.fillRect(0, 0, W, H);
+
+        // Repère papier : rotation 180° imposée par l'imprimante thermique
+        const offsetY = isForPrint ? (Number(model.options.offset) || 0) : 0;
+        if (isForPrint) {
+            targetCtx.translate(W, H);
+            targetCtx.rotate(Math.PI);
+        }
+
+        freeDrawBorder(targetCtx, model, offsetY);
+        model.elements.forEach((el) => freeDrawElement(targetCtx, el, offsetY));
+
+        targetCtx.restore();
+    }
+
+    // --- APERÇU ÉCRAN (repères + sélection) ---
+
+    function freeUsableHeight() {
+        return FREE_H - (Number(freeModel.options.offset) || 0);
+    }
+
+    function freeDrawGuides(targetCtx) {
+        const zone = freeUsableHeight();
+        targetCtx.save();
+
+        // Bande consommée par l'avance papier de l'imprimante
+        if (zone < FREE_H) {
+            targetCtx.fillStyle = 'rgba(148, 163, 184, 0.18)';
+            targetCtx.fillRect(0, zone, FREE_W, FREE_H - zone);
+            targetCtx.strokeStyle = 'rgba(100, 116, 139, 0.45)';
+            targetCtx.lineWidth = 1;
+            for (let x = -FREE_H; x < FREE_W; x += 9) {
+                targetCtx.beginPath();
+                targetCtx.moveTo(x, FREE_H);
+                targetCtx.lineTo(x + (FREE_H - zone), zone);
+                targetCtx.stroke();
+            }
+        }
+
+        // Grille de magnétisme
+        const pas = Number(freeModel.options.grid) || 0;
+        if (pas > 0) {
+            targetCtx.strokeStyle = 'rgba(148, 163, 184, 0.28)';
+            targetCtx.lineWidth = 1;
+            for (let x = 0; x <= FREE_W; x += pas * 6) {
+                targetCtx.beginPath(); targetCtx.moveTo(x + 0.5, 0); targetCtx.lineTo(x + 0.5, Math.min(zone, FREE_H)); targetCtx.stroke();
+            }
+            for (let y = 0; y <= zone; y += pas * 6) {
+                targetCtx.beginPath(); targetCtx.moveTo(0, y + 0.5); targetCtx.lineTo(FREE_W, y + 0.5); targetCtx.stroke();
+            }
+        }
+
+        // Limite de la zone imprimable
+        targetCtx.setLineDash([6, 4]);
+        targetCtx.strokeStyle = '#e11d48';
+        targetCtx.lineWidth = 2;
+        targetCtx.beginPath();
+        targetCtx.moveTo(0, zone);
+        targetCtx.lineTo(FREE_W, zone);
+        targetCtx.stroke();
+        targetCtx.setLineDash([]);
+
+        // Axe central
+        targetCtx.strokeStyle = 'rgba(37, 99, 235, 0.25)';
+        targetCtx.setLineDash([2, 6]);
+        targetCtx.beginPath();
+        targetCtx.moveTo(FREE_W / 2, 0);
+        targetCtx.lineTo(FREE_W / 2, zone);
+        targetCtx.stroke();
+        targetCtx.setLineDash([]);
+
+        targetCtx.restore();
+    }
+
+    function updateFreeWarning() {
+        const zone = freeUsableHeight();
+        const hauteurMm = Math.round(zone * 30 / FREE_H);
+        let horsZone = 0;
+        let horsLargeur = 0;
+        freeModel.elements.forEach((el) => {
+            if (el.hidden) return;
+            // La marge décorative n'est comptée que si elle est réellement dessinée
+            // (fond inversé ou cadre), sinon un texte collé à y = 0 déclencherait
+            // une alerte injustifiée.
+            const habille = el.type === 'text' && (el.invert || el.box === 'rect');
+            const boite = freeElementBBox(freeMeasureCtx, el, !habille);
+            if (boite.maxY > zone + 0.5 || boite.minY < -0.5) horsZone++;
+            if (boite.minX < -0.5 || boite.maxX > FREE_W + 0.5) horsLargeur++;
+        });
+
+        const messages = [];
+        if (horsZone) messages.push(`${horsZone} élément(s) sortent de la zone imprimable (${hauteurMm} mm) : la partie basse ne sera pas imprimée.`);
+        if (horsLargeur) messages.push(`${horsLargeur} élément(s) dépassent la largeur de l'étiquette (384 px) : ils seront coupés.`);
+
+        if (messages.length) {
+            freeWarningEl.textContent = '⚠ ' + messages.join(' ');
+            freeWarningEl.classList.remove('hidden');
+        } else {
+            freeWarningEl.textContent = '';
+            freeWarningEl.classList.add('hidden');
+        }
+    }
+
+    function renderFreePreview() {
+        if (!freeModel) return;
+        renderFreeCanvas(freeModel, false, freeCtx, freeCanvas);
+
+        if (freeModel.options.guides) freeDrawGuides(freeCtx);
+
+        const el = freeSelected();
+        if (el) {
+            const boite = freeElementBBox(freeMeasureCtx, el);
+            freeCtx.save();
+            freeCtx.setLineDash([5, 3]);
+            freeCtx.strokeStyle = '#2563eb';
+            freeCtx.lineWidth = 1.5;
+            freeCtx.strokeRect(
+                Math.round(boite.minX) - 2,
+                Math.round(boite.minY) - 2,
+                Math.round(boite.maxX - boite.minX) + 4,
+                Math.round(boite.maxY - boite.minY) + 4
+            );
+            freeCtx.setLineDash([]);
+            freeCtx.restore();
+        }
+
+        updateFreeWarning();
+    }
+
+    // --- CALQUES ---
+
+    function freeSelected() {
+        if (!freeModel) return null;
+        return freeModel.elements.find((el) => el.id === freeSel) || null;
+    }
+
+    function freeLayerLabel(el, index) {
+        if (el.type === 'line') return `Trait ${Math.round(el.width)} px`;
+        const texte = String(el.text || '').replace(/\s+/g, ' ').trim();
+        if (!texte) return `Texte vide ${index + 1}`;
+        return texte.length > 22 ? texte.slice(0, 22) + '…' : texte;
+    }
+
+    function renderFreeLayers() {
+        freeLayersEl.innerHTML = '';
+        freeLayerCountEl.textContent = String(freeModel.elements.length);
+
+        if (freeModel.elements.length === 0) {
+            const vide = document.createElement('li');
+            vide.className = 'free-empty';
+            vide.textContent = 'Aucun élément. Ajoutez du texte ou un trait.';
+            freeLayersEl.appendChild(vide);
+            return;
+        }
+
+        // Affichage du dessus de pile vers le bas
+        const ordre = freeModel.elements.slice().reverse();
+        ordre.forEach((el, i) => {
+            const indexReel = freeModel.elements.length - 1 - i;
+            const li = document.createElement('li');
+            li.className = 'layer-item' + (el.id === freeSel ? ' selected' : '');
+            li.dataset.id = String(el.id);
+            li.title = el.hidden ? 'Élément masqué' : 'Cliquer pour sélectionner';
+            li.innerHTML = `
+                <span class="layer-label ${el.hidden ? 'layer-hidden' : ''}">${el.type === 'line' ? '— ' : ''}${freeEscape(freeLayerLabel(el, indexReel))}</span>
+                <button type="button" class="layer-icon-btn" data-action="up" aria-label="Monter l'élément dans la pile" title="Monter">▲</button>
+                <button type="button" class="layer-icon-btn" data-action="down" aria-label="Descendre l'élément dans la pile" title="Descendre">▼</button>
+                <button type="button" class="layer-icon-btn" data-action="dup" aria-label="Dupliquer l'élément" title="Dupliquer">⧉</button>
+                <button type="button" class="layer-icon-btn" data-action="eye" aria-label="Afficher ou masquer l'élément" title="Afficher / masquer">${el.hidden ? '🚫' : '👁'}</button>
+                <button type="button" class="layer-icon-btn danger" data-action="del" aria-label="Supprimer l'élément" title="Supprimer">✕</button>
+            `;
+            freeLayersEl.appendChild(li);
+        });
+    }
+
+    function freeEscape(texte) {
+        return String(texte).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function freeReorder(id, sens) {
+        const index = freeModel.elements.findIndex((el) => el.id === id);
+        const cible = index + sens;
+        if (index < 0 || cible < 0 || cible >= freeModel.elements.length) return;
+        const [el] = freeModel.elements.splice(index, 1);
+        freeModel.elements.splice(cible, 0, el);
+        freeLayersRefresh();
+    }
+
+    function freeDuplicate(id) {
+        const index = freeModel.elements.findIndex((el) => el.id === id);
+        if (index < 0) return;
+        const copie = freeDeepCopy(freeModel.elements[index]);
+        copie.id = freeSeq++;
+        copie.x = freeClamp(copie.x + 6, -40, FREE_W + 40);
+        copie.y = freeClamp(copie.y + 6, -40, FREE_H + 20);
+        freeModel.elements.splice(index + 1, 0, copie);
+        freeSel = copie.id;
+        freeLayersRefresh();
+    }
+
+    function freeDelete(id) {
+        freeModel.elements = freeModel.elements.filter((el) => el.id !== id);
+        if (freeSel === id) freeSel = null;
+        freeLayersRefresh();
+    }
+
+    function freeToggleHidden(id) {
+        const el = freeModel.elements.find((e) => e.id === id);
+        if (!el) return;
+        el.hidden = !el.hidden;
+        freeLayersRefresh();
+    }
+
+    function freeLayersRefresh() {
+        renderFreeLayers();
+        syncFreeEditor();
+        renderFreePreview();
+        freeSave();
+    }
+
+    function freeSelect(id) {
+        freeSel = id;
+        renderFreeLayers();
+        syncFreeEditor();
+        renderFreePreview();
+    }
+
+    // --- ÉDITEUR DE MISE EN FORME ---
+
+    function freeSetIfIdle(input, valeur) {
+        if (document.activeElement === input) return;
+        input.value = valeur;
+    }
+
+    function syncFreeEditor() {
+        const el = freeSelected();
+        freeEditorEl.classList.toggle('hidden', !el);
+        freeEditorEmptyEl.classList.toggle('hidden', !!el);
+        if (!el) return;
+
+        const estTrait = el.type === 'line';
+        freeEditorEl.classList.toggle('mode-line', estTrait);
+        freeLineOptionsEl.classList.toggle('hidden', !estTrait);
+
+        if (!estTrait) {
+            freeSetIfIdle(freeTextEl, el.text);
+            freeSetIfIdle(freeFontEl, el.font);
+            freeSetIfIdle(freeSizeEl, String(el.size));
+            freeSetIfIdle(freeSizeNumEl, String(el.size));
+            freeSetIfIdle(freeLineHeightEl, String(el.lineHeight));
+            freeSetIfIdle(freeSpacingEl, String(el.spacing));
+            freeSetIfIdle(freeMaxWidthEl, String(el.maxWidth));
+            freeSetIfIdle(freeBoxEl, el.box);
+        }
+
+        freeSetIfIdle(freePosXEl, String(Math.round(el.x)));
+        freeSetIfIdle(freePosYEl, String(Math.round(el.y)));
+        freeBoldEl.classList.toggle('active', !!el.bold);
+        freeItalicEl.classList.toggle('active', !!el.italic);
+        freeUnderlineEl.classList.toggle('active', !!el.underline);
+        freeInvertEl.classList.toggle('active', !!el.invert);
+
+        freeModal.querySelectorAll('[data-align]').forEach((btn) => {
+            btn.classList.toggle('active', String(btn.dataset.align) === String(el.align));
+        });
+        freeModal.querySelectorAll('[data-rotate]').forEach((btn) => {
+            btn.classList.toggle('active', Number(btn.dataset.rotate) === el.rotate);
+        });
+
+        if (estTrait) {
+            freeSetIfIdle(freeLineWidthEl, String(el.width));
+            freeSetIfIdle(freeLineThicknessEl, String(el.thickness));
+        }
+    }
+
+    function freeUpdate(patch, options = {}) {
+        const el = freeSelected();
+        if (!el) return;
+        Object.assign(el, patch);
+        if (!options.skipEditor) syncFreeEditor();
+        if (options.skipLayers) {
+            const label = freeLayersEl.querySelector('.layer-item.selected .layer-label');
+            if (label) label.textContent = (el.type === 'line' ? '— ' : '') + freeLayerLabel(el, 0);
+        } else {
+            renderFreeLayers();
+        }
+        renderFreePreview();
+        freeSave();
+    }
+
+    function syncFreeOptionsFromUI() {
+        freeModel.options.offset = Number(freeOffsetEl.value) || 0;
+        freeModel.options.guides = freeGuidesEl.checked;
+        freeModel.options.grid = Number(freeGridEl.value) || 0;
+        freeModel.options.border = freeBorderEl.value;
+        freeModel.options.borderWidth = freeClamp(Number(freeBorderWidthEl.value) || 3, 1, 12);
+        freeModel.options.margin = freeClamp(Number(freeMarginEl.value) || 0, 0, 40);
+        renderFreePreview();
+        freeSave();
+    }
+
+    function syncFreeOptionsToUI() {
+        freeOffsetEl.value = String(freeModel.options.offset);
+        freeGuidesEl.checked = !!freeModel.options.guides;
+        freeGridEl.value = String(freeModel.options.grid);
+        freeBorderEl.value = freeModel.options.border;
+        freeBorderWidthEl.value = String(freeModel.options.borderWidth);
+        freeMarginEl.value = String(freeModel.options.margin);
+    }
+
+    // --- PERSISTANCE & MODÈLES ---
+
+    function freeSave() {
+        try {
+            localStorage.setItem(FREE_MODEL_KEY, JSON.stringify({ options: freeModel.options, elements: freeModel.elements }));
+        } catch (e) { /* stockage indisponible */ }
+    }
+
+    function freeLoad() {
+        try {
+            const brut = localStorage.getItem(FREE_MODEL_KEY);
+            if (!brut) return null;
+            const donnees = JSON.parse(brut);
+            const model = freeNewModel();
+            if (donnees && donnees.options) Object.assign(model.options, donnees.options);
+            if (donnees && Array.isArray(donnees.elements)) {
+                model.elements = donnees.elements.map((el) => freeMakeElement(el));
+            }
+            return model;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function freeLoadTemplates() {
+        try {
+            return JSON.parse(localStorage.getItem(FREE_TEMPLATES_KEY)) || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function freeWriteTemplates(modeles) {
+        try {
+            localStorage.setItem(FREE_TEMPLATES_KEY, JSON.stringify(modeles));
+        } catch (e) { /* stockage indisponible */ }
+    }
+
+    function freeFillTemplateSelect() {
+        const perso = freeLoadTemplates();
+        const valeur = freeTemplateSelectEl.value;
+        freeTemplateSelectEl.innerHTML = '<option value="">Modèles…</option>';
+
+        const groupePrests = document.createElement('optgroup');
+        groupePrests.label = 'Modèles prêts';
+        Object.keys(FREE_BUILTIN_TEMPLATES).forEach((nom) => {
+            const option = document.createElement('option');
+            option.value = 'builtin:' + nom;
+            option.textContent = nom;
+            groupePrests.appendChild(option);
+        });
+        freeTemplateSelectEl.appendChild(groupePrests);
+
+        const noms = Object.keys(perso);
+        if (noms.length) {
+            const groupePerso = document.createElement('optgroup');
+            groupePerso.label = 'Mes modèles';
+            noms.forEach((nom) => {
+                const option = document.createElement('option');
+                option.value = 'perso:' + nom;
+                option.textContent = nom;
+                groupePerso.appendChild(option);
+            });
+            freeTemplateSelectEl.appendChild(groupePerso);
+        }
+        freeTemplateSelectEl.value = valeur;
+    }
+
+    function freeApplyTemplate(valeur) {
+        if (!valeur) return;
+        const [genre, nom] = [valeur.slice(0, valeur.indexOf(':')), valeur.slice(valeur.indexOf(':') + 1)];
+        let elements = null;
+        let options = null;
+
+        if (genre === 'builtin') {
+            const preset = FREE_BUILTIN_TEMPLATES[nom];
+            if (!preset) return;
+            elements = freeElementsFromPreset(preset);
+            if (nom === 'Mention + cadre') options = { border: 'thick', borderWidth: 3, margin: 5 };
+            if (nom === 'Bandeau inversé') options = { border: 'rounded', borderWidth: 3, margin: 4 };
+        } else {
+            const perso = freeLoadTemplates()[nom];
+            if (!perso) return;
+            elements = (perso.elements || []).map((el) => freeMakeElement(el));
+            options = perso.options ? Object.assign({}, perso.options) : null;
+        }
+
+        if (freeModel.elements.length && !confirm(`Remplacer l'étiquette en cours par le modèle « ${nom} » ?`)) return;
+        freeModel.elements = elements;
+        if (options) Object.assign(freeModel.options, options);
+        freeSel = freeModel.elements.length ? freeModel.elements[0].id : null;
+        syncFreeOptionsToUI();
+        freeLayersRefresh();
+    }
+
+    function freeTemplateName(prefixe) {
+        const nom = window.prompt(prefixe, 'Mon modèle');
+        if (!nom) return null;
+        return nom.trim();
+    }
+
+    // --- IMPORT DU FORMULAIRE (même mise en page que l'étiquette standard) ---
+
+    function freeSeedFromForm() {
+        const donnees = getFormData();
+        const elements = [];
+        const ajouter = (props) => elements.push(freeMakeElement(props));
+
+        if (donnees.discipline) {
+            ajouter({ text: donnees.discipline.toUpperCase(), x: 12, y: 0, size: 24, bold: true, rotate: 270, align: 'right' });
+        }
+        if (donnees.dateEntree) {
+            const parties = donnees.dateEntree.split('/');
+            ajouter({ text: parties[0] || 'JJ', x: 374, y: 0, size: 36, bold: true, align: 'right' });
+            const mois = getMonthName(donnees.dateEntree);
+            if (mois) ajouter({ text: mois.toUpperCase(), x: 374, y: 34, size: 24, bold: true, align: 'right' });
+        }
+
+        ajouter({ text: donnees.nom || 'NOM', x: 192, y: 0, size: 46, bold: true, align: 'center' });
+        ajouter({ text: donnees.prenom || 'Prénom', x: 192, y: 48, size: 38, align: 'center' });
+
+        let texteDdn = donnees.dateNaissance || 'JJ/MM/AAAA';
+        if (donnees.dateNaissance && donnees.dateNaissance.length === 10) {
+            const age = calculateAge(donnees.dateNaissance);
+            if (age) texteDdn += ` (${age})`;
+        }
+        ajouter({ text: texteDdn, x: 192, y: 88, size: 27, align: 'center' });
+        ajouter({ text: donnees.motif || "Motif d'admission", x: 192, y: 119, size: 24, align: 'center', maxWidth: 280 });
+
+        if (donnees.chambreSeule) {
+            ajouter({ text: 'Ch. seule', x: 374, y: 96, size: 18, bold: true, align: 'right' });
+        }
+
+        return elements;
+    }
+
+    function freeImportForm() {
+        const elements = freeSeedFromForm();
+        if (freeModel.elements.length && !confirm("Remplacer l'étiquette libre en cours par les informations du formulaire ?")) return;
+        freeModel.elements = elements;
+        freeSel = elements.length ? elements[0].id : null;
+        freeLayersRefresh();
+    }
+
+    // --- ACTIONS ---
+
+    function freeAddText() {
+        const zone = freeUsableHeight();
+        const el = freeMakeElement({ text: 'Texte libre', x: 192, y: Math.max(0, Math.round(zone / 2) - 13), size: 26, align: 'center' });
+        freeModel.elements.push(el);
+        freeSel = el.id;
+        freeLayersRefresh();
+        freeTextEl.focus();
+        freeTextEl.select();
+    }
+
+    function freeAddLine() {
+        const zone = freeUsableHeight();
+        const el = freeMakeElement({ type: 'line', x: 40, y: Math.round(zone / 2), width: 304, thickness: 3 });
+        freeModel.elements.push(el);
+        freeSel = el.id;
+        freeLayersRefresh();
+    }
+
+    function freeResetAll() {
+        if (freeModel.elements.length && !confirm("Effacer toute l'étiquette libre ?")) return;
+        freeModel = freeNewModel();
+        freeSel = null;
+        syncFreeOptionsToUI();
+        freeLayersRefresh();
+    }
+
+    function freeAddToQueue() {
+        const utile = freeModel.elements.some((el) => !el.hidden && (el.type === 'line' || String(el.text || '').trim() !== ''));
+        if (!utile && !confirm("Ajouter une étiquette libre vide à la file d'attente ?")) return;
+
+        const modele = freeDeepCopy({ options: freeModel.options, elements: freeModel.elements });
+        const premier = modele.elements.find((el) => el.type === 'text' && String(el.text || '').trim() !== '');
+        const titre = premier ? String(premier.text).replace(/\s+/g, ' ').trim().slice(0, 24) : 'Étiquette libre';
+
+        queue.push({
+            id: Date.now() + Math.random(),
+            kind: 'libre',
+            model: modele,
+            data: { nom: titre, prenom: '', discipline: '', dateEntree: '', motif: '', dateNaissance: '', chambreSeule: false }
+        });
+        renderQueue();
+    }
+
+    async function freePrintNow() {
+        try {
+            const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = FREE_W;
+            offCanvas.height = FREE_H;
+            const offCtx = offCanvas.getContext('2d');
+            renderFreeCanvas(freeModel, true, offCtx, offCanvas);
+            await printCanvas(offCanvas, postFeed);
+        } catch (error) {
+            alert("Erreur lors de l'impression : " + error.message);
+        }
+    }
+
+    function freeCanvasPoint(ev) {
+        const rect = freeCanvas.getBoundingClientRect();
+        return {
+            x: (ev.clientX - rect.left) * (FREE_W / rect.width),
+            y: (ev.clientY - rect.top) * (FREE_H / rect.height)
+        };
+    }
+
+    // --- OUVERTURE / FERMETURE DE LA FENÊTRE ---
+
+    function openFreeModal() {
+        freeModal.classList.remove('hidden');
+        renderFreeLayers();
+        syncFreeEditor();
+        renderFreePreview();
+    }
+
+    function closeFreeModal() {
+        freeModal.classList.add('hidden');
+        freeDrag = null;
+    }
+
+    // --- ÉCOUTEURS ---
+
+    btnOpenFree.addEventListener('click', openFreeModal);
+    btnCloseFreeModal.addEventListener('click', closeFreeModal);
+    freeModal.addEventListener('click', (ev) => {
+        if (ev.target === freeModal) closeFreeModal();
+    });
+    btnFreeAddText.addEventListener('click', freeAddText);
+    btnFreeAddLine.addEventListener('click', freeAddLine);
+    btnFreeDuplicate.addEventListener('click', () => { if (freeSel) freeDuplicate(freeSel); });
+    btnFreeFromForm.addEventListener('click', freeImportForm);
+    btnFreeReset.addEventListener('click', freeResetAll);
+    btnFreeAddQueue.addEventListener('click', freeAddToQueue);
+    btnFreePrint.addEventListener('click', freePrintNow);
+
+    freeLayersEl.addEventListener('click', (ev) => {
+        const ligne = ev.target.closest('.layer-item');
+        if (!ligne) return;
+        const id = Number(ligne.dataset.id);
+        const action = ev.target.dataset ? ev.target.dataset.action : null;
+        if (!action) { freeSelect(id); return; }
+        ev.stopPropagation();
+        if (action === 'up') freeReorder(id, 1);
+        else if (action === 'down') freeReorder(id, -1);
+        else if (action === 'dup') freeDuplicate(id);
+        else if (action === 'eye') freeToggleHidden(id);
+        else if (action === 'del') freeDelete(id);
+    });
+
+    freeTextEl.addEventListener('input', () => freeUpdate({ text: freeTextEl.value }, { skipEditor: true, skipLayers: true }));
+    freeFontEl.addEventListener('change', () => freeUpdate({ font: freeFontEl.value }, { skipEditor: true }));
+    freeSizeEl.addEventListener('input', () => freeUpdate({ size: Number(freeSizeEl.value) || 26 }, { skipEditor: true }));
+    freeSizeNumEl.addEventListener('input', () => {
+        const taille = freeClamp(Number(freeSizeNumEl.value) || 26, 6, 96);
+        freeUpdate({ size: taille }, { skipEditor: true });
+    });
+    freePosXEl.addEventListener('input', () => freeUpdate({ x: Number(freePosXEl.value) || 0 }, { skipEditor: true }));
+    freePosYEl.addEventListener('input', () => freeUpdate({ y: Number(freePosYEl.value) || 0 }, { skipEditor: true }));
+    freeLineHeightEl.addEventListener('change', () => freeUpdate({ lineHeight: Number(freeLineHeightEl.value) || 1.1 }, { skipEditor: true }));
+    freeSpacingEl.addEventListener('input', () => freeUpdate({ spacing: Number(freeSpacingEl.value) || 0 }, { skipEditor: true }));
+    freeMaxWidthEl.addEventListener('input', () => freeUpdate({ maxWidth: freeClamp(Number(freeMaxWidthEl.value) || 0, 0, FREE_W) }, { skipEditor: true }));
+    freeBoxEl.addEventListener('change', () => freeUpdate({ box: freeBoxEl.value }, { skipEditor: true }));
+    freeLineWidthEl.addEventListener('input', () => freeUpdate({ width: freeClamp(Number(freeLineWidthEl.value) || 10, 4, FREE_W) }, { skipEditor: true }));
+    freeLineThicknessEl.addEventListener('input', () => freeUpdate({ thickness: freeClamp(Number(freeLineThicknessEl.value) || 1, 1, 40) }, { skipEditor: true }));
+
+    freeBoldEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ bold: !el.bold }); });
+    freeItalicEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ italic: !el.italic }); });
+    freeUnderlineEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ underline: !el.underline }); });
+    freeInvertEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ invert: !el.invert }); });
+
+    freeModal.querySelectorAll('[data-align]').forEach((btn) => {
+        btn.addEventListener('click', () => freeUpdate({ align: btn.dataset.align }));
+    });
+    freeModal.querySelectorAll('[data-rotate]').forEach((btn) => {
+        btn.addEventListener('click', () => freeUpdate({ rotate: Number(btn.dataset.rotate) }));
+    });
+    freeModal.querySelectorAll('[data-nudge]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const el = freeSelected();
+            if (!el) return;
+            const [dx, dy] = btn.dataset.nudge.split(',').map(Number);
+            freeUpdate({ x: freeClamp(el.x + dx, -40, FREE_W + 40), y: freeClamp(el.y + dy, -40, FREE_H + 20) });
+        });
+    });
+    freeModal.querySelectorAll('[data-pospreset]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const el = freeSelected();
+            if (!el) return;
+            const boite = freeElementBBox(freeMeasureCtx, el);
+            const zone = freeUsableHeight();
+            const preset = btn.dataset.pospreset;
+            const patch = {};
+            if (preset === 'center') patch.x = freeClamp(el.x - (boite.minX + boite.maxX) / 2 + FREE_W / 2, -40, FREE_W + 40);
+            if (preset === 'top') patch.y = freeClamp(el.y - boite.minY, -40, FREE_H + 20);
+            if (preset === 'bottom') patch.y = freeClamp(el.y - boite.maxY + zone, -40, FREE_H + 20);
+            if (preset === 'left') patch.x = freeClamp(el.x - boite.minX, -40, FREE_W + 40);
+            if (preset === 'right') patch.x = freeClamp(el.x - boite.maxX + FREE_W, -40, FREE_W + 40);
+            freeUpdate(patch, { skipLayers: true });
+        });
+    });
+
+    [freeOffsetEl, freeGuidesEl, freeGridEl, freeBorderEl, freeBorderWidthEl, freeMarginEl].forEach((champ) => {
+        champ.addEventListener('change', syncFreeOptionsFromUI);
+        champ.addEventListener('input', syncFreeOptionsFromUI);
+    });
+
+    freeTemplateSelectEl.addEventListener('change', () => {
+        const valeur = freeTemplateSelectEl.value;
+        freeTemplateSelectEl.value = '';
+        if (valeur) freeApplyTemplate(valeur);
+    });
+    btnFreeSaveTemplate.addEventListener('click', () => {
+        const nom = freeTemplateName("Nom du modèle à enregistrer :");
+        if (!nom) return;
+        const modeles = freeLoadTemplates();
+        modeles[nom] = freeDeepCopy({ options: freeModel.options, elements: freeModel.elements });
+        freeWriteTemplates(modeles);
+        freeFillTemplateSelect();
+        alert(`Modèle « ${nom} » enregistré.`);
+    });
+    btnFreeDeleteTemplate.addEventListener('click', () => {
+        const perso = freeLoadTemplates();
+        const noms = Object.keys(perso);
+        if (!noms.length) { alert('Aucun modèle enregistré.'); return; }
+        const nom = window.prompt('Nom du modèle à supprimer :\n' + noms.join(', '), noms[0]);
+        if (!nom || !perso[nom]) { if (nom) alert('Modèle introuvable.'); return; }
+        delete perso[nom];
+        freeWriteTemplates(perso);
+        freeFillTemplateSelect();
+    });
+
+    // Déplacement direct à la souris / au doigt sur l'aperçu
+    freeCanvas.addEventListener('pointerdown', (ev) => {
+        const point = freeCanvasPoint(ev);
+        const el = freeHitTest(freeMeasureCtx, point.x, point.y);
+        if (el) {
+            freeSelect(el.id);
+            freeDrag = { id: el.id, dx: point.x - el.x, dy: point.y - el.y };
+            try { freeCanvas.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+        } else if (freeSel !== null) {
+            freeSel = null;
+            renderFreeLayers();
+            syncFreeEditor();
+            renderFreePreview();
+        }
+        freeCanvas.focus();
+    });
+
+    freeCanvas.addEventListener('pointermove', (ev) => {
+        if (!freeDrag) return;
+        const el = freeModel.elements.find((e) => e.id === freeDrag.id);
+        if (!el) return;
+        const point = freeCanvasPoint(ev);
+        const pas = Number(freeModel.options.grid) || 0;
+        let nx = point.x - freeDrag.dx;
+        let ny = point.y - freeDrag.dy;
+        if (pas > 0) {
+            nx = Math.round(nx / pas) * pas;
+            ny = Math.round(ny / pas) * pas;
+        }
+        el.x = freeClamp(Math.round(nx), -40, FREE_W + 40);
+        el.y = freeClamp(Math.round(ny), -40, FREE_H + 20);
+        syncFreeEditor();
+        renderFreePreview();
+    });
+
+    freeCanvas.addEventListener('pointerup', (ev) => {
+        if (!freeDrag) return;
+        freeDrag = null;
+        try { freeCanvas.releasePointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
+        freeSave();
+    });
+
+    freeCanvas.addEventListener('pointercancel', () => { freeDrag = null; });
+
+    // Flèches du clavier : déplacement fin ; Suppr : effacer l'élément
+    document.addEventListener('keydown', (ev) => {
+        if (freeModal.classList.contains('hidden')) return;
+        if (ev.key === 'Escape') { closeFreeModal(); return; }
+
+        const cible = ev.target;
+        if (cible && ['INPUT', 'TEXTAREA', 'SELECT'].includes(cible.tagName)) return;
+
+        const el = freeSelected();
+        if (!el) return;
+        const pas = ev.shiftKey ? 10 : (Number(freeModel.options.grid) || 1);
+        let modifie = true;
+
+        if (ev.key === 'ArrowLeft') el.x = freeClamp(el.x - pas, -40, FREE_W + 40);
+        else if (ev.key === 'ArrowRight') el.x = freeClamp(el.x + pas, -40, FREE_W + 40);
+        else if (ev.key === 'ArrowUp') el.y = freeClamp(el.y - pas, -40, FREE_H + 20);
+        else if (ev.key === 'ArrowDown') el.y = freeClamp(el.y + pas, -40, FREE_H + 20);
+        else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); freeDelete(el.id); return; }
+        else modifie = false;
+
+        if (modifie) {
+            ev.preventDefault();
+            syncFreeEditor();
+            renderFreePreview();
+            freeSave();
+        }
+    });
+
+    // --- INITIALISATION DU MODE LIBRE ---
+
+    // Regroupe les champs réservés au texte (masqués lorsqu'un trait est sélectionné)
+    [
+        freeTextEl.closest('.form-group'),
+        freeFontEl.closest('.form-group'),
+        freeSizeNumEl.closest('.form-group'),
+        freeSizeEl.closest('.form-group'),
+        freeLineHeightEl.closest('.free-grid2'),
+        freeBoldEl, freeItalicEl, freeUnderlineEl, freeInvertEl
+    ].forEach((noeud) => { if (noeud) noeud.classList.add('free-text-only'); });
+    freeModal.querySelectorAll('[data-align]').forEach((btn) => btn.classList.add('free-text-only'));
+
+    freeFontEl.innerHTML = FREE_FONTS.map((police) => `<option value="${freeEscape(police.value)}">${freeEscape(police.label)}</option>`).join('');
+
+    freeModel = freeLoad() || freeNewModel();
+    if (!freeModel.elements.length) {
+        freeModel.elements = [freeMakeElement({ text: 'Texte libre', x: 192, y: 60, size: 30, bold: true, align: 'center' })];
+    }
+    freeSel = freeModel.elements[0].id;
+    syncFreeOptionsToUI();
+    freeFillTemplateSelect();
+    renderFreeLayers();
+    syncFreeEditor();
+
     // --- CONVERSION CANVAS EN BITMAP 1-BIT AVEC SEUILLAGE AJUSTABLE ---
     /**
      * Chaque ligne de 384 pixels est convertie en 48 octets (384 / 8 = 48).
@@ -876,6 +1980,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
 
         queue.push({
             id: Date.now(),
+            kind: 'standard',
             data: data,
             canvas: offCanvas
         });
@@ -910,16 +2015,29 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             const div = document.createElement('div');
             div.className = 'queue-item';
 
-            const title = `${item.data.nom || 'Sans Nom'} ${item.data.prenom || ''}`.trim() || `Étiquette #${index + 1}`;
-            const sub = [item.data.discipline, item.data.dateEntree].filter(Boolean).join(' • ') || 'Sans détails';
+            let title;
+            let sub;
+            if (item.kind === 'libre') {
+                const textes = item.model.elements
+                    .filter((el) => el.type === 'text' && String(el.text || '').trim() !== '')
+                    .map((el) => String(el.text).replace(/\s+/g, ' ').trim());
+                title = textes.length ? (textes[0].length > 26 ? textes[0].slice(0, 26) + '…' : textes[0]) : 'Étiquette libre';
+                sub = `Saisie libre • ${item.model.elements.length} élément(s)`;
+            } else {
+                title = `${item.data.nom || 'Sans Nom'} ${item.data.prenom || ''}`.trim() || `Étiquette #${index + 1}`;
+                sub = [item.data.discipline, item.data.dateEntree].filter(Boolean).join(' • ') || 'Sans détails';
+            }
+
+            const titreSecurise = freeEscape(title);
+            const sousTitreSecurise = freeEscape(sub);
 
             div.innerHTML = `
                 <div class="queue-item-details">
-                    <span class="queue-item-title">${index + 1}. ${title}</span>
-                    <span class="queue-item-sub">${sub}</span>
+                    <span class="queue-item-title">${index + 1}. ${titreSecurise}</span>
+                    <span class="queue-item-sub">${sousTitreSecurise}</span>
                 </div>
                 <div class="queue-item-actions">
-                    <button class="btn btn-small btn-danger" data-id="${item.id}" aria-label="Supprimer ${title} de la file" title="Supprimer">X</button>
+                    <button class="btn btn-small btn-danger" data-id="${item.id}" aria-label="Supprimer ${titreSecurise} de la file" title="Supprimer">X</button>
                 </div>
             `;
 
@@ -933,6 +2051,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
     function updateQueueButtonsState() {
         const isConnected = !!bleWriteCharacteristic;
         btnPrintBatch.disabled = !isConnected || queue.length === 0;
+        if (btnFreePrint) btnFreePrint.disabled = !isConnected;
     }
 
     // --- IMPRESSION PAR LOT (BATCH) ---
@@ -952,7 +2071,11 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
                 printCanvasEl.width = 384;
                 printCanvasEl.height = 240;
                 const printCtx = printCanvasEl.getContext('2d');
-                renderCanvas(queue[i].data, true, printCtx, printCanvasEl);
+                if (queue[i].kind === 'libre') {
+                    renderFreeCanvas(queue[i].model, true, printCtx, printCanvasEl);
+                } else {
+                    renderCanvas(queue[i].data, true, printCtx, printCanvasEl);
+                }
 
                 await printCanvas(printCanvasEl, feedLines);
             }
@@ -1014,4 +2137,6 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
 
     // Initialisation
     renderCanvas();
+    renderFreePreview();
+    updateQueueButtonsState();
 });

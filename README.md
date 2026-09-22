@@ -14,6 +14,15 @@ Application web statique autonome (Client-side pure, zéro serveur, zéro télé
   - **Date de naissance** : Format `JJ/MM/AAAA` au centre.
   - **Motif d'admission** : Positionné en bas au centre.
 - **Prévisualisation en direct** : Rendu dynamique en noir et blanc instantané.
+- **Étiquette en saisie libre** (fenêtre dédiée, même format 50 x 30 mm) :
+  - **Texte libre** : autant d'éléments que voulu, texte multi-lignes, retour à la ligne automatique (largeur max.).
+  - **Placement libre** : glisser-déposer à la souris/au doigt sur l'aperçu, saisie directe des positions X/Y, flèches du clavier (Maj = 10 px) et calages rapides (Centrer, Haut, Bas, Gauche, Droite).
+  - **Mise en forme libre** : 7 polices, taille (6-96 px), gras, italique, souligné, alignement gauche/centre/droite, rotation 0/90/180/270°, texte inversé (blanc sur noir), interligne, espacement des lettres, encadrement de l'élément.
+  - **Traits** : ajout de traits/séparateurs avec longueur et épaisseur réglables.
+  - **Options d'étiquette** : cadre (fin, épais, double, arrondi), marge, magnétisme sur grille, repères visuels et choix de la zone imprimable (19 mm recommandé ou 30 mm pleine hauteur).
+  - **Calques** : réordonnancement (monter/descendre), duplication, masquage, suppression.
+  - **Modèles** : modèles intégrés (deux lignes, trois lignes + trait, bandeau inversé, étiquette patient, mention + cadre), enregistrement de ses propres modèles, import depuis le formulaire, persistance automatique (localStorage).
+  - **File d'attente** : ajout à la file et impression directe, au même titre que les étiquettes du formulaire.
 - **100% Client-side & Sécurisé** : Aucun appel réseau externe, aucun CDN distant, aucune transmission de données.
 - **Support du Protocole Tiny Print / GB01** :
   - Conversion automatique du canvas en trames binaires 1-bit bitmap (48 octets/ligne x 240 lignes).
