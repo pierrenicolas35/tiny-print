@@ -1,4 +1,4 @@
-const CACHE_NAME = 'etiquettes-ble-v2';
+const CACHE_NAME = 'etiquettes-ble-v3';
 const urlsToCache = [
   './',
   './index.html',

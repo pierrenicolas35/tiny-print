@@ -23,6 +23,11 @@
     padding: 0;
 }
 
+/* Utilitaire : masquage (utilisé par les fenêtres et les panneaux) */
+.hidden {
+    display: none !important;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
@@ -901,7 +906,7 @@ input:checked + .slider-compact:before {
 }
 
 .free-modal {
-    max-width: 1120px;
+    max-width: 1060px;
     width: 96%;
     max-height: 94vh;
     overflow-y: auto;
@@ -924,20 +929,9 @@ input:checked + .slider-compact:before {
     border-bottom: 1px solid var(--border-color);
 }
 
-.free-template-group {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-}
-
-.free-template-group select {
-    max-width: 190px;
-}
-
 .free-body {
     display: grid;
-    grid-template-columns: minmax(180px, 220px) minmax(260px, 320px) minmax(320px, 1fr);
+    grid-template-columns: minmax(170px, 210px) minmax(250px, 300px) minmax(320px, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -951,14 +945,6 @@ input:checked + .slider-compact:before {
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-.free-count {
-    background: var(--primary-color);
-    color: #fff;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    padding: 1px 7px;
 }
 
 .free-tip {
@@ -1007,11 +993,6 @@ input:checked + .slider-compact:before {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.layer-hidden {
-    opacity: 0.45;
-    text-decoration: line-through;
 }
 
 .layer-icon-btn {
@@ -1085,21 +1066,6 @@ input:checked + .slider-compact:before {
     margin: 0 3px;
 }
 
-.free-inline {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.free-inline .form-control-compact {
-    width: 64px;
-}
-
-.free-inline-center {
-    align-items: center;
-}
-
 .free-canvas-wrapper {
     padding: 10px;
 }
@@ -1126,28 +1092,8 @@ input:checked + .slider-compact:before {
     margin-bottom: 8px;
 }
 
-.free-options {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 8px 10px 4px;
-    margin: 8px 0 10px;
-}
-
-.free-options legend {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--text-muted);
-    padding: 0 4px;
-}
-
 #btnOpenFree {
     width: 100%;
-}
-
-/* Un trait sélectionné masque les champs réservés au texte */
-#freeEditor.mode-line .free-text-only {
-    display: none !important;
 }
 
 /* Responsive : la fenêtre passe en une colonne sur petit écran */
@@ -1162,11 +1108,6 @@ input:checked + .slider-compact:before {
 
     .free-modal {
         padding: 14px;
-    }
-
-    .free-template-group {
-        margin-left: 0;
-        width: 100%;
     }
 }
 

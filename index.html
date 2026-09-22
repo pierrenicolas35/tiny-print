@@ -124,9 +124,9 @@
                     <h2 class="h2-compact" style="margin-bottom: 0;">Étiquette en saisie libre</h2>
                 </div>
                 <p class="free-hint compact-hint">
-                    Même format 50 &times; 30 mm, mais texte <strong>libre</strong> : position (glisser&ndash;déposer),
-                    mise en forme (police, taille, gras/italique/souligné, rotation, inversion, cadre)
-                    et options (cadre de l'étiquette, repères, modèles).
+                    Même format 50 &times; 30 mm, mais plusieurs <strong>zones de texte</strong> libres :
+                    déplacement à la souris et mise en forme simple (police, taille, gras, italique,
+                    souligné, alignement).
                 </p>
                 <button type="button" id="btnOpenFree" class="btn btn-primary btn-large btn-small-padding">
                     Ouvrir la fenêtre d'étiquette libre
@@ -163,7 +163,7 @@
 
     <footer class="app-footer">
         <p>Application statique autonome &bull; Fonctionne 100% hors-ligne dans votre navigateur &bull; Protocole GB01 / Tiny Print</p>
-        <p class="version-info" id="buildVersion">Dernière mise à jour : 22/09/2026 à 23:06</p>
+        <p class="version-info" id="buildVersion">Dernière mise à jour : 22/09/2026 à 23:19</p>
     </footer>
 
     <!-- Modal Pop-up de Connexion Android UX -->
@@ -204,49 +204,41 @@
         </div>
     </div>
 
-    <!-- Fenêtre : Étiquette en saisie libre, placement et mise en forme libres -->
+    <!-- Fenêtre : Étiquette en saisie libre, plusieurs zones de texte -->
     <div id="freeModal" class="modal-overlay hidden" role="dialog" aria-modal="false" aria-labelledby="freeModalTitle">
         <div class="modal-content free-modal">
             <button id="btnCloseFreeModal" class="modal-close" aria-label="Fermer la fenêtre d'étiquette libre" title="Fermer">&times;</button>
             <h3 id="freeModalTitle">Étiquette en saisie libre &mdash; format 50 &times; 30 mm</h3>
             <p class="free-hint">
-                Ajoutez du texte, <strong>déplacez-le directement à la souris</strong> (ou au doigt) sur l'aperçu, puis
-                mettez-le en forme librement. Seule la zone au-dessus de la ligne pointillée (19 mm) est imprimée&nbsp;:
+                Ajoutez plusieurs <strong>zones de texte</strong>, déplacez-les directement sur l'aperçu
+                (glisser&ndash;déposer) puis mettez-les en forme simplement : police, taille, gras, italique,
+                souligné et alignement. Seule la zone au-dessus de la ligne pointillée est imprimée&nbsp;;
                 la bande hachurée correspond à l'avance papier de l'imprimante.
             </p>
 
-            <!-- Barre d'outils -->
             <div class="free-toolbar">
-                <button type="button" id="btnFreeAddText" class="btn btn-primary btn-small">+ Texte</button>
-                <button type="button" id="btnFreeAddLine" class="btn btn-secondary btn-small">+ Trait</button>
+                <button type="button" id="btnFreeAddText" class="btn btn-primary btn-small">+ Zone de texte</button>
                 <button type="button" id="btnFreeDuplicate" class="btn btn-secondary btn-small">Dupliquer</button>
-                <button type="button" id="btnFreeFromForm" class="btn btn-secondary btn-small" title="Pré-remplir l'étiquette libre avec les informations saisies dans le formulaire">Importer le formulaire</button>
+                <button type="button" id="btnFreeDelete" class="btn btn-secondary btn-small">Supprimer</button>
                 <button type="button" id="btnFreeReset" class="btn btn-danger btn-small">Tout effacer</button>
-                <span class="free-template-group">
-                    <select id="freeTemplateSelect" class="form-control form-control-compact" aria-label="Modèles d'étiquette">
-                        <option value="">Modèles&hellip;</option>
-                    </select>
-                    <button type="button" id="btnFreeSaveTemplate" class="btn btn-secondary btn-small">Enregistrer</button>
-                    <button type="button" id="btnFreeDeleteTemplate" class="btn btn-danger btn-small" aria-label="Supprimer le modèle sélectionné" title="Supprimer le modèle">&times;</button>
-                </span>
             </div>
 
             <div class="free-body">
-                <!-- Colonne 1 : calques -->
-                <div class="free-col free-col-layers">
-                    <h4>Calques <span id="freeLayerCount" class="free-count">0</span></h4>
+                <!-- Colonne 1 : zones de texte -->
+                <div class="free-col free-col-zones">
+                    <h4>Zones de texte</h4>
                     <ul id="freeLayers" class="free-layers-list"></ul>
-                    <p class="free-tip">Cliquez sur un calque pour le sélectionner. Flèches du clavier&nbsp;: déplacer (Maj&nbsp;=&nbsp;10&nbsp;px), Suppr&nbsp;: effacer.</p>
+                    <p class="free-tip">Cliquez sur une zone pour la sélectionner. Flèches du clavier&nbsp;: déplacer (Maj&nbsp;=&nbsp;10&nbsp;px), Suppr&nbsp;: effacer.</p>
                 </div>
 
-                <!-- Colonne 2 : mise en forme -->
+                <!-- Colonne 2 : mise en forme (comme un traitement de texte) -->
                 <div class="free-col free-col-format">
                     <h4>Mise en forme</h4>
-                    <div id="freeEditorEmpty" class="free-empty">Sélectionnez un élément (calque ou clic sur l'aperçu) pour le mettre en forme.</div>
+                    <div id="freeEditorEmpty" class="free-empty">Sélectionnez une zone de texte (dans la liste ou sur l'aperçu) pour la mettre en forme.</div>
                     <div id="freeEditor" class="hidden">
                         <div class="form-group">
                             <label for="freeText" class="label-compact">Texte (Entrée = nouvelle ligne) :</label>
-                            <textarea id="freeText" class="form-control form-control-compact free-textarea" rows="2" placeholder="Texte libre"></textarea>
+                            <textarea id="freeText" class="form-control form-control-compact free-textarea" rows="2" placeholder="Votre texte"></textarea>
                         </div>
 
                         <div class="free-grid2">
@@ -255,14 +247,12 @@
                                 <select id="freeFont" class="form-control form-control-compact"></select>
                             </div>
                             <div class="form-group">
-                                <label for="freeSizeNum" class="label-compact">Taille (px) :</label>
-                                <input id="freeSizeNum" class="form-control form-control-compact" type="number" min="6" max="96" step="1" value="24">
+                                <label for="freeSizeNum" class="label-compact">Taille :</label>
+                                <input id="freeSizeNum" class="form-control form-control-compact" type="number" min="6" max="96" step="1" value="26">
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <input id="freeSize" class="free-range" type="range" min="6" max="96" step="1" value="24" aria-label="Taille du texte">
-                        </div>
+                        <input id="freeSize" class="free-range" type="range" min="6" max="96" step="1" value="26" aria-label="Taille du texte">
 
                         <div class="free-btn-row">
                             <button type="button" class="btn btn-secondary btn-small free-toggle" id="freeBold" title="Gras"><strong>G</strong></button>
@@ -272,42 +262,6 @@
                             <button type="button" class="btn btn-secondary btn-small free-toggle" data-align="left" title="Aligner à gauche">&#8676;</button>
                             <button type="button" class="btn btn-secondary btn-small free-toggle" data-align="center" title="Centrer">&#8596;</button>
                             <button type="button" class="btn btn-secondary btn-small free-toggle" data-align="right" title="Aligner à droite">&#8677;</button>
-                            <span class="free-sep"></span>
-                            <button type="button" class="btn btn-secondary btn-small free-toggle" data-rotate="0" title="Rotation 0°">0°</button>
-                            <button type="button" class="btn btn-secondary btn-small free-toggle" data-rotate="90" title="Rotation 90°">90°</button>
-                            <button type="button" class="btn btn-secondary btn-small free-toggle" data-rotate="180" title="Rotation 180°">180°</button>
-                            <button type="button" class="btn btn-secondary btn-small free-toggle" data-rotate="270" title="Rotation 270° (vertical)">270°</button>
-                            <span class="free-sep"></span>
-                            <button type="button" class="btn btn-secondary btn-small free-toggle" id="freeInvert" title="Texte blanc sur fond noir">Inverser</button>
-                        </div>
-
-                        <div class="free-grid2">
-                            <div class="form-group">
-                                <label for="freeLineHeight" class="label-compact">Interligne :</label>
-                                <select id="freeLineHeight" class="form-control form-control-compact">
-                                    <option value="0.95">Serré (0,95)</option>
-                                    <option value="1.1" selected>Normal (1,1)</option>
-                                    <option value="1.3">Aéré (1,3)</option>
-                                    <option value="1.5">Très aéré (1,5)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="freeSpacing" class="label-compact">Espacement lettres (px) :</label>
-                                <input id="freeSpacing" class="form-control form-control-compact" type="number" min="-5" max="20" step="0.5" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="freeMaxWidth" class="label-compact">Largeur max. (px, 0 = libre) :</label>
-                                <input id="freeMaxWidth" class="form-control form-control-compact" type="number" min="0" max="384" step="4" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="freeBox" class="label-compact">Encadrement de l'élément :</label>
-                                <select id="freeBox" class="form-control form-control-compact">
-                                    <option value="none">Aucun</option>
-                                    <option value="rect">Cadre</option>
-                                    <option value="below">Trait sous le texte</option>
-                                    <option value="top">Trait au-dessus du texte</option>
-                                </select>
-                            </div>
                         </div>
 
                         <div class="free-grid2">
@@ -320,84 +274,16 @@
                                 <input id="freePosY" class="form-control form-control-compact" type="number" min="-20" max="260" step="1" value="20">
                             </div>
                         </div>
-
-                        <div class="free-btn-row">
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-nudge="-1,0" aria-label="Déplacer à gauche">&larr;</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-nudge="1,0" aria-label="Déplacer à droite">&rarr;</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-nudge="0,-1" aria-label="Déplacer vers le haut">&uarr;</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-nudge="0,1" aria-label="Déplacer vers le bas">&darr;</button>
-                            <span class="free-sep"></span>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-pospreset="center" title="Centrer horizontalement">Centrer</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-pospreset="top" title="Coller en haut de la zone">Haut</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-pospreset="bottom" title="Coller en bas de la zone">Bas</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-pospreset="left" title="Coller à gauche">Gauche</button>
-                            <button type="button" class="btn btn-secondary btn-super-small free-toggle" data-pospreset="right" title="Coller à droite">Droite</button>
-                        </div>
-
-                        <div class="form-group free-inline" id="freeLineOptions">
-                            <label for="freeLineWidth" class="label-compact">Trait : longueur</label>
-                            <input id="freeLineWidth" class="form-control form-control-compact" type="number" min="4" max="384" step="2" value="200">
-                            <label for="freeLineThickness" class="label-compact">épaisseur</label>
-                            <input id="freeLineThickness" class="form-control form-control-compact" type="number" min="1" max="40" step="1" value="3">
-                        </div>
                     </div>
                 </div>
 
-                <!-- Colonne 3 : aperçu + options -->
+                <!-- Colonne 3 : aperçu -->
                 <div class="free-col free-col-preview">
                     <h4>Aperçu (384 &times; 240 px &mdash; glisser pour placer)</h4>
                     <div class="canvas-wrapper compact-wrapper free-canvas-wrapper">
                         <canvas id="freeCanvas" width="384" height="240" tabindex="0" aria-label="Aperçu de l'étiquette libre, déplaçable"></canvas>
                     </div>
                     <p id="freeWarning" class="free-warning hidden"></p>
-
-                    <fieldset class="free-options">
-                        <legend>Options d'étiquette</legend>
-                        <div class="free-grid2">
-                            <div class="form-group">
-                                <label for="freeBorder" class="label-compact">Cadre de l'étiquette :</label>
-                                <select id="freeBorder" class="form-control form-control-compact">
-                                    <option value="none" selected>Aucun</option>
-                                    <option value="thin">Fin</option>
-                                    <option value="thick">Épais</option>
-                                    <option value="double">Double trait</option>
-                                    <option value="rounded">Arrondi</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="freeBorderWidth" class="label-compact">Épaisseur du cadre (px) :</label>
-                                <input id="freeBorderWidth" class="form-control form-control-compact" type="number" min="1" max="12" step="1" value="3">
-                            </div>
-                            <div class="form-group">
-                                <label for="freeMargin" class="label-compact">Marge du cadre (px) :</label>
-                                <input id="freeMargin" class="form-control form-control-compact" type="number" min="0" max="40" step="1" value="6">
-                            </div>
-                            <div class="form-group">
-                                <label for="freeGrid" class="label-compact">Magnétisme (grille) :</label>
-                                <select id="freeGrid" class="form-control form-control-compact">
-                                    <option value="0">Aucun</option>
-                                    <option value="1">1 px</option>
-                                    <option value="2">2 px</option>
-                                    <option value="4" selected>4 px</option>
-                                    <option value="8">8 px</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="freeOffset" class="label-compact">Zone imprimable :</label>
-                                <select id="freeOffset" class="form-control form-control-compact">
-                                    <option value="88" selected>19 mm (recommandé, GB01/X6)</option>
-                                    <option value="0">30 mm (pleine hauteur)</option>
-                                </select>
-                            </div>
-                            <div class="form-group free-inline free-inline-center">
-                                <label class="switch switch-compact" title="Afficher la grille et la limite imprimable">
-                                    <input type="checkbox" id="freeGuides" checked>
-                                    <span class="slider round slider-compact"></span>
-                                </label>
-                                <label for="freeGuides" class="label-compact">Repères</label>
-                            </div>
-                        </div>
-                    </fieldset>
 
                     <div class="button-group compact-btn-group">
                         <button type="button" id="btnFreeAddQueue" class="btn btn-secondary btn-small">+ Ajouter à la file</button>
