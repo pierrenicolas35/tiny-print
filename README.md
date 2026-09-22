@@ -30,7 +30,9 @@ Application web statique autonome (Client-side pure, zéro serveur, zéro télé
   - Bouton d'avance papier manuelle.
 - **Gestion de file d'attente (Batch Printing)** :
   - Préparation et programmation de plusieurs étiquettes.
-  - Lancement de l'impression globale du lot en une seule connexion BLE avec avance automatique configurable entre chaque étiquette.
+  - **Nombre d'impressions par étiquette** : réglez de 1 à 99 exemplaires pour chaque étiquette de la file (champ « × »). Le total à imprimer est rappelé sous la liste et sur le bouton d'impression.
+  - Lancement de l'impression globale du lot en une seule connexion BLE avec avance automatique configurable entre chaque étiquette (l'avance finale n'est appliquée qu'après la dernière impression).
+  - Progression affichée pendant l'impression du lot (ex. « Impression 3/7… »).
 
 ---
 
@@ -88,4 +90,5 @@ Utilisez l'extension **Live Server** dans VS Code.
 4. **Impression par lot** :
    - Cliquez sur **"+ Ajouter à la file"**.
    - Répétez l'opération pour d'autres étiquettes.
-   - Cliquez sur **"Imprimer la file d'attente"** pour lancer l'impression continue du lot.
+   - Ajustez si besoin le **nombre d'impressions** de chaque étiquette (champ « × » à droite de la ligne).
+   - Cliquez sur **"Imprimer la file"** pour lancer l'impression continue du lot.

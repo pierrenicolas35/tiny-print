@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnClearQueue = document.getElementById('btnClearQueue');
     const queueListEl = document.getElementById('queueList');
     const queueCountEl = document.getElementById('queueCount');
+    const queueSummaryEl = document.getElementById('queueSummary');
 
     // Modal Elements
     const connectionModal = document.getElementById('connectionModal');
@@ -883,6 +884,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         queue.push({
             id: Date.now() + Math.random(),
             kind: 'libre',
+            copies: 1,
             model: modele,
             data: { nom: titre, prenom: '', discipline: '', dateEntree: '', motif: '', dateNaissance: '', chambreSeule: false }
         });
@@ -1464,6 +1466,17 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
     }
 
     // --- GESTION DE LA FILE D'ATTENTE (BATCH PRINTING) ---
+
+    // Nombre d'impressions demandé pour une étiquette de la file (1 à 99)
+    function queueCopies(item) {
+        return freeClamp(Math.round(Number(item && item.copies) || 1), 1, 99);
+    }
+
+    // Nombre total d'impressions de la file (somme des exemplaires)
+    function queueTotalPrints() {
+        return queue.reduce((total, item) => total + queueCopies(item), 0);
+    }
+
     function addToQueue() {
         const data = getFormData();
         if (!data.nom && !data.prenom && !data.discipline) {
@@ -1482,6 +1495,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         queue.push({
             id: Date.now(),
             kind: 'standard',
+            copies: 1,
             data: data,
             canvas: offCanvas
         });
@@ -1506,6 +1520,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         if (queue.length === 0) {
             queueListEl.innerHTML = '<p class="empty-queue-msg">Aucune étiquette dans la file d\'attente.</p>';
             btnClearQueue.disabled = true;
+            updateQueueSummary();
             updateQueueButtonsState();
             return;
         }
@@ -1538,20 +1553,62 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
                     <span class="queue-item-sub">${sousTitreSecurise}</span>
                 </div>
                 <div class="queue-item-actions">
+                    <label class="queue-copies" title="Nombre d'impressions de cette étiquette">
+                        <span aria-hidden="true">&times;</span>
+                        <input type="number" min="1" max="99" step="1" value="${queueCopies(item)}"
+                               data-copies="${item.id}"
+                               aria-label="Nombre d'impressions de l'étiquette ${titreSecurise}">
+                    </label>
                     <button class="btn btn-small btn-danger" data-id="${item.id}" aria-label="Supprimer ${titreSecurise} de la file" title="Supprimer">X</button>
                 </div>
             `;
+
+            const champCopies = div.querySelector('input[data-copies]');
+            champCopies.addEventListener('input', () => {
+                item.copies = Number(champCopies.value) || 1;
+                updateQueueSummary();
+                updateQueueButtonsState();
+            });
+            champCopies.addEventListener('change', () => {
+                item.copies = queueCopies(item);
+                champCopies.value = String(item.copies);
+                updateQueueSummary();
+                updateQueueButtonsState();
+            });
 
             div.querySelector('button').addEventListener('click', () => removeFromQueue(item.id));
             queueListEl.appendChild(div);
         });
 
+        updateQueueSummary();
         updateQueueButtonsState();
+    }
+
+    // Rappel du nombre total d'impressions, affiché seulement s'il diffère
+    // du nombre d'étiquettes (c'est-à-dire si des exemplaires sont demandés).
+    function updateQueueSummary() {
+        if (!queueSummaryEl) return;
+
+        const total = queueTotalPrints();
+        if (queue.length === 0 || total === queue.length) {
+            queueSummaryEl.textContent = '';
+            queueSummaryEl.classList.add('hidden');
+            return;
+        }
+
+        const etiquettes = queue.length > 1 ? 'étiquettes' : 'étiquette';
+        const impressions = total > 1 ? 'impressions' : 'impression';
+        queueSummaryEl.textContent = `${queue.length} ${etiquettes} · ${total} ${impressions} au total`;
+        queueSummaryEl.classList.remove('hidden');
     }
 
     function updateQueueButtonsState() {
         const isConnected = !!bleWriteCharacteristic;
+        const total = queueTotalPrints();
         btnPrintBatch.disabled = !isConnected || queue.length === 0;
+        btnPrintBatch.textContent = (total > 1 && total !== queue.length)
+            ? `Imprimer la file (${total})`
+            : 'Imprimer la file';
         if (btnFreePrint) btnFreePrint.disabled = !isConnected;
     }
 
@@ -1562,30 +1619,50 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         const interFeed = parseInt(inputInterLabelFeed.value, 10) || 20;
         const postFeed = parseInt(inputPostPrintFeed.value, 10) || 20;
 
+        // Déroule la file en tenant compte du nombre d'impressions par étiquette.
+        // L'avance inter-étiquettes s'applique entre chaque impression et l'avance
+        // finale uniquement après la toute dernière.
+        const taches = [];
+        queue.forEach((item) => {
+            const copies = queueCopies(item);
+            for (let c = 0; c < copies; c++) taches.push(item);
+        });
+
         try {
-            for (let i = 0; i < queue.length; i++) {
-                const isLast = (i === queue.length - 1);
+            for (let i = 0; i < taches.length; i++) {
+                const isLast = (i === taches.length - 1);
                 const feedLines = isLast ? postFeed : interFeed;
+
+                if (taches.length > 1) {
+                    btnPrintBatch.textContent = `Impression ${i + 1}/${taches.length}\u2026`;
+                }
 
                 // Recréer le canvas pour l'impression (rotation, pas de tirets)
                 const printCanvasEl = document.createElement('canvas');
                 printCanvasEl.width = 384;
                 printCanvasEl.height = 240;
                 const printCtx = printCanvasEl.getContext('2d');
-                if (queue[i].kind === 'libre') {
-                    renderFreeCanvas(queue[i].model, true, printCtx, printCanvasEl);
+                if (taches[i].kind === 'libre') {
+                    renderFreeCanvas(taches[i].model, true, printCtx, printCanvasEl);
                 } else {
-                    renderCanvas(queue[i].data, true, printCtx, printCanvasEl);
+                    renderCanvas(taches[i].data, true, printCtx, printCanvasEl);
                 }
 
                 await printCanvas(printCanvasEl, feedLines);
             }
-            if (confirm("Impression terminée. Voulez-vous effacer la liste d'étiquettes ?")) {
+
+            const total = taches.length;
+            const message = total > queue.length
+                ? `Impression terminée (${total} impressions). Voulez-vous effacer la liste d'étiquettes ?`
+                : "Impression terminée. Voulez-vous effacer la liste d'étiquettes ?";
+            if (confirm(message)) {
                 clearQueue();
             }
         } catch (error) {
             console.error("Erreur lors de l'impression du lot:", error);
             alert("Erreur lors de l'impression par lot : " + error.message);
+        } finally {
+            updateQueueButtonsState();
         }
     }
 
