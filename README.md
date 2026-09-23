@@ -15,8 +15,8 @@ Application web statique autonome (Client-side pure, zéro serveur, zéro télé
   - **Motif d'admission** : Positionné en bas au centre.
 - **Prévisualisation en direct** : Rendu dynamique en noir et blanc instantané.
 - **Étiquette en saisie libre** (fenêtre dédiée, même format 50 x 30 mm) :
-  - **Zones de texte multiples** : ajoutez autant de zones de texte que nécessaire, avec duplication et suppression, et une liste pour les sélectionner.
-  - **Placement libre** : glisser-déposer à la souris ou au doigt sur l'aperçu, saisie directe des positions X/Y, flèches du clavier (Maj = 10 px).
+  - **Zones de texte multiples** : ajoutez autant de zones de texte que nécessaire ; les actions « Copier la zone » et « Supprimer la zone » s'appliquent à la zone sélectionnée, et une liste permet de les sélectionner.
+  - **Placement libre** : glisser-déposer à la souris ou au doigt directement sur l'aperçu, ou flèches du clavier (Maj = 10 px).
   - **Mise en forme type traitement de texte** : police (7 choix), taille (6-96 px), gras, italique, souligné et alignement gauche/centre/droite. Aucune couleur : l'impression est monochrome.
   - **File d'attente** : ajout à la file et impression directe, au même titre que les étiquettes du formulaire.
 - **100% Client-side & Sécurisé** : Aucun appel réseau externe, aucun CDN distant, aucune transmission de données.
@@ -30,7 +30,7 @@ Application web statique autonome (Client-side pure, zéro serveur, zéro télé
   - Bouton d'avance papier manuelle.
 - **Gestion de file d'attente (Batch Printing)** :
   - Préparation et programmation de plusieurs étiquettes.
-  - **Nombre d'impressions par étiquette** : réglez de 1 à 99 exemplaires pour chaque étiquette de la file (champ « × »). Le total à imprimer est rappelé sous la liste et sur le bouton d'impression.
+  - **Nombre d'impressions par étiquette** : réglez de 1 à 99 exemplaires pour chaque étiquette de la file avec le compteur « − N + » (boutons moins / plus de part et d'autre du nombre). Le total à imprimer est rappelé sous la liste et sur le bouton d'impression.
   - Lancement de l'impression globale du lot en une seule connexion BLE avec avance automatique configurable entre chaque étiquette (l'avance finale n'est appliquée qu'après la dernière impression).
   - Progression affichée pendant l'impression du lot (ex. « Impression 3/7… »).
 
@@ -90,5 +90,5 @@ Utilisez l'extension **Live Server** dans VS Code.
 4. **Impression par lot** :
    - Cliquez sur **"+ Ajouter à la file"**.
    - Répétez l'opération pour d'autres étiquettes.
-   - Ajustez si besoin le **nombre d'impressions** de chaque étiquette (champ « × » à droite de la ligne).
+   - Ajustez si besoin le **nombre d'impressions** de chaque étiquette avec le compteur « − N + » à droite de la ligne (les boutons **−** et **+** encadrent le nombre d'exemplaires ; la croix rouge supprime l'étiquette de la file).
    - Cliquez sur **"Imprimer la file"** pour lancer l'impression continue du lot.

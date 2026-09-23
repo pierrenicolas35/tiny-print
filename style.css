@@ -483,38 +483,63 @@ label {
     gap: 6px;
 }
 
-/* Nombre d'impressions d'une étiquette de la file */
-.queue-copies {
+/* Nombre d'impressions d'une étiquette de la file : compteur « − N + » */
+.queue-stepper {
     display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    align-items: stretch;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
     white-space: nowrap;
 }
 
-.queue-copies > span {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: var(--text-color);
-}
-
-.queue-copies input {
-    width: 54px;
-    padding: 3px 5px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+.queue-stepper input {
+    width: 40px;
+    padding: 3px 2px;
+    border: none;
+    border-left: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
     background: #fff;
     color: var(--text-color);
     font: inherit;
     font-size: 0.82rem;
+    font-weight: 700;
     text-align: center;
+    -moz-appearance: textfield;
 }
 
-.queue-copies input:focus {
+.queue-stepper input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    box-shadow: inset 0 0 0 2px rgba(52, 152, 219, 0.35);
+}
+
+/* Les boutons + et − remplacent les flèches natives du champ nombre. */
+.queue-stepper input::-webkit-outer-spin-button,
+.queue-stepper input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.queue-step-btn {
+    width: 26px;
+    border: none;
+    background: var(--bg-color);
+    color: var(--text-color);
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+}
+
+.queue-step-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
 }
 
 .queue-summary {
@@ -993,6 +1018,19 @@ input:checked + .slider-compact:before {
     color: var(--text-muted);
     line-height: 1.35;
     margin-top: 8px;
+}
+
+.free-tip-inline {
+    margin-top: 12px;
+    margin-bottom: 0;
+}
+
+/* Pictogrammes des boutons d'action */
+.btn-icon {
+    width: 1em;
+    height: 1em;
+    flex: none;
+    margin-right: 5px;
 }
 
 .free-layers-list {

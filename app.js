@@ -491,8 +491,6 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
     const freeBoldEl = document.getElementById('freeBold');
     const freeItalicEl = document.getElementById('freeItalic');
     const freeUnderlineEl = document.getElementById('freeUnderline');
-    const freePosXEl = document.getElementById('freePosX');
-    const freePosYEl = document.getElementById('freePosY');
     const btnFreeAddText = document.getElementById('btnFreeAddText');
     const btnFreeDuplicate = document.getElementById('btnFreeDuplicate');
     const btnFreeDelete = document.getElementById('btnFreeDelete');
@@ -792,14 +790,16 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         const el = freeSelected();
         freeEditorEl.classList.toggle('hidden', !el);
         freeEditorEmptyEl.classList.toggle('hidden', !!el);
+        // « Copier la zone » et « Supprimer la zone » n'agissent que sur une
+        // zone sélectionnée : on les désactive pour éviter toute confusion.
+        btnFreeDuplicate.disabled = !el;
+        btnFreeDelete.disabled = !el;
         if (!el) return;
 
         freeSetIfIdle(freeTextEl, el.text);
         freeSetIfIdle(freeFontEl, el.font);
         freeSetIfIdle(freeSizeEl, String(el.size));
         freeSetIfIdle(freeSizeNumEl, String(el.size));
-        freeSetIfIdle(freePosXEl, String(Math.round(el.x)));
-        freeSetIfIdle(freePosYEl, String(Math.round(el.y)));
 
         freeBoldEl.classList.toggle('active', !!el.bold);
         freeItalicEl.classList.toggle('active', !!el.italic);
@@ -963,9 +963,6 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         const taille = freeClamp(Number(freeSizeNumEl.value) || 26, 6, 96);
         freeUpdate({ size: taille }, { skipEditor: true });
     });
-    freePosXEl.addEventListener('input', () => freeUpdate({ x: Number(freePosXEl.value) || 0 }, { skipEditor: true }));
-    freePosYEl.addEventListener('input', () => freeUpdate({ y: Number(freePosYEl.value) || 0 }, { skipEditor: true }));
-
     freeBoldEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ bold: !el.bold }); });
     freeItalicEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ italic: !el.italic }); });
     freeUnderlineEl.addEventListener('click', () => { const el = freeSelected(); if (el) freeUpdate({ underline: !el.underline }); });
@@ -1553,30 +1550,41 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
                     <span class="queue-item-sub">${sousTitreSecurise}</span>
                 </div>
                 <div class="queue-item-actions">
-                    <label class="queue-copies" title="Nombre d'impressions de cette étiquette">
-                        <span aria-hidden="true">&times;</span>
+                    <div class="queue-stepper" role="group" aria-label="Nombre d'impressions de l'étiquette ${titreSecurise}">
+                        <button type="button" class="queue-step-btn" data-step="-1" data-id="${item.id}"
+                                aria-label="Moins d'exemplaires de ${titreSecurise}" title="Moins d'exemplaires">&minus;</button>
                         <input type="number" min="1" max="99" step="1" value="${queueCopies(item)}"
                                data-copies="${item.id}"
                                aria-label="Nombre d'impressions de l'étiquette ${titreSecurise}">
-                    </label>
+                        <button type="button" class="queue-step-btn" data-step="1" data-id="${item.id}"
+                                aria-label="Plus d'exemplaires de ${titreSecurise}" title="Plus d'exemplaires">+</button>
+                    </div>
                     <button class="btn btn-small btn-danger" data-id="${item.id}" aria-label="Supprimer ${titreSecurise} de la file" title="Supprimer">X</button>
                 </div>
             `;
 
             const champCopies = div.querySelector('input[data-copies]');
+            // Applique un nombre d'impressions borné (1 à 99) et rafraîchit l'affichage.
+            const appliquerCopies = (valeur) => {
+                item.copies = freeClamp(Math.round(Number(valeur) || 1), 1, 99);
+                champCopies.value = String(item.copies);
+                updateQueueSummary();
+                updateQueueButtonsState();
+            };
             champCopies.addEventListener('input', () => {
                 item.copies = Number(champCopies.value) || 1;
                 updateQueueSummary();
                 updateQueueButtonsState();
             });
-            champCopies.addEventListener('change', () => {
-                item.copies = queueCopies(item);
-                champCopies.value = String(item.copies);
-                updateQueueSummary();
-                updateQueueButtonsState();
+            champCopies.addEventListener('change', () => appliquerCopies(champCopies.value));
+
+            div.querySelectorAll('.queue-step-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    appliquerCopies(queueCopies(item) + Number(btn.dataset.step));
+                });
             });
 
-            div.querySelector('button').addEventListener('click', () => removeFromQueue(item.id));
+            div.querySelector('button.btn-danger').addEventListener('click', () => removeFromQueue(item.id));
             queueListEl.appendChild(div);
         });
 

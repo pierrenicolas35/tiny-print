@@ -164,7 +164,7 @@
 
     <footer class="app-footer">
         <p>Application statique autonome &bull; Fonctionne 100% hors-ligne dans votre navigateur &bull; Protocole GB01 / Tiny Print</p>
-        <p class="version-info" id="buildVersion">Dernière mise à jour : 22/09/2026 à 23:33</p>
+        <p class="version-info" id="buildVersion">Dernière mise à jour : 23/09/2026 à 09:15</p>
     </footer>
 
     <!-- Modal Pop-up de Connexion Android UX -->
@@ -218,10 +218,22 @@
             </p>
 
             <div class="free-toolbar">
-                <button type="button" id="btnFreeAddText" class="btn btn-primary btn-small">+ Zone de texte</button>
-                <button type="button" id="btnFreeDuplicate" class="btn btn-secondary btn-small">Dupliquer</button>
-                <button type="button" id="btnFreeDelete" class="btn btn-secondary btn-small">Supprimer</button>
-                <button type="button" id="btnFreeReset" class="btn btn-danger btn-small">Tout effacer</button>
+                <button type="button" id="btnFreeAddText" class="btn btn-primary btn-small">
+                    <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg>
+                    Ajouter une zone de texte
+                </button>
+                <button type="button" id="btnFreeDuplicate" class="btn btn-secondary btn-small" disabled title="Crée une copie de la zone de texte sélectionnée">
+                    <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.75" y="5.75" width="7.5" height="7.5" rx="1.5"/><path d="M2.75 9.5v-5A2.75 2.75 0 0 1 5.5 1.75h4.5"/></svg>
+                    Copier la zone
+                </button>
+                <button type="button" id="btnFreeDelete" class="btn btn-secondary btn-small" disabled title="Supprime la zone de texte sélectionnée">
+                    <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5h10"/><path d="M4.6 4.5l.5 8.05A1.25 1.25 0 0 0 6.35 13.7h3.3a1.25 1.25 0 0 0 1.25-1.15l.5-8.05"/><path d="M6.3 4.5V3.3A1.3 1.3 0 0 1 7.6 2h.8a1.3 1.3 0 0 1 1.3 1.3v1.2"/></svg>
+                    Supprimer la zone
+                </button>
+                <button type="button" id="btnFreeReset" class="btn btn-danger btn-small" title="Efface toutes les zones de texte de l'étiquette">
+                    <svg class="btn-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.6 2.9 2.9 9.6a1.5 1.5 0 0 0 0 2.12l1.38 1.38a1.5 1.5 0 0 0 2.12 0l6.7-6.7a1.5 1.5 0 0 0 0-2.12L11.72 2.9a1.5 1.5 0 0 0-2.12 0Z"/><path d="M6.9 5.6l4.5 4.5"/><path d="M7.5 13.5h6"/></svg>
+                    Tout effacer
+                </button>
             </div>
 
             <div class="free-body">
@@ -265,16 +277,7 @@
                             <button type="button" class="btn btn-secondary btn-small free-toggle" data-align="right" title="Aligner à droite">&#8677;</button>
                         </div>
 
-                        <div class="free-grid2">
-                            <div class="form-group">
-                                <label for="freePosX" class="label-compact">Position X (px) :</label>
-                                <input id="freePosX" class="form-control form-control-compact" type="number" min="-20" max="404" step="1" value="192">
-                            </div>
-                            <div class="form-group">
-                                <label for="freePosY" class="label-compact">Position Y (px) :</label>
-                                <input id="freePosY" class="form-control form-control-compact" type="number" min="-20" max="260" step="1" value="20">
-                            </div>
-                        </div>
+                        <p class="free-tip free-tip-inline">Déplacez la zone directement sur l'aperçu (glisser&ndash;déposer) ou avec les flèches du clavier.</p>
                     </div>
                 </div>
 
