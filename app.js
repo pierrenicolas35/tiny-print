@@ -69,6 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let bleGattServer = null;
     let bleWriteCharacteristic = null;
     let bleNotifyCharacteristic = null;
+    let isConnecting = false;
+    let manualDisconnect = false;
+    let autoReconnectTimer = null;
+    let autoReconnectDelay = 2000;
+
+    // Préfixes de noms des imprimantes thermiques compatibles.
+    // Permet de reconnaître, SANS aucune fenêtre système, une imprimante déjà autorisée.
+    const PRINTER_NAME_PREFIXES = [
+        'X6h', 'X6', 'GB01', 'MX06', 'Cat Printer', 'CatPrinter', 'Fun Print',
+        'FunPrint', 'Tiny', 'TinyPrint', 'Phomemo', 'Lovcoyo', 'WalkPrint',
+        'iPrint', 'PeriPage', 'Peripage', 'GT01', 'M02', 'P12'
+    ];
+    const DEVICE_ID_STORAGE_KEY = 'tinyprint.lastDeviceId';
 
     // Liste exhaustive des services BLE utilisés par les imprimantes thermiques (GB01, Lovcoyo X6, WalkPrint, Nordic UART, Phomemo, etc.)
     const BT_SERVICES = [
@@ -901,7 +914,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             renderFreeCanvas(freeModel, true, offCtx, offCanvas);
             await printCanvas(offCanvas, postFeed);
         } catch (error) {
-            alert("Erreur lors de l'impression : " + error.message);
+            showToast("Erreur lors de l'impression : " + error.message, 'error');
         }
     }
 
@@ -1296,43 +1309,100 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         connectionModal.classList.add('hidden');
     }
 
-    // --- CONNEXION BLUETOOTH BLE AVEC FILTRES PAR NOM ---
-    async function connectBluetoothBLE() {
+    // --- NOTIFICATIONS NON BLOQUANTES (remplacent les alertes système) ---
+    function showToast(message, type = 'info', duration = 6000) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            container.setAttribute('aria-live', 'polite');
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add('toast-visible'));
+        setTimeout(() => {
+            toast.classList.remove('toast-visible');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+
+        return toast;
+    }
+
+    // --- DÉTECTION DES IMPRIMANTES DÉJÀ AUTORISÉES (AUCUNE FENÊTRE SYSTÈME) ---
+    function isPrinterName(name) {
+        if (!name) return false;
+        const upperName = name.toUpperCase();
+        return PRINTER_NAME_PREFIXES.some(prefix => upperName.startsWith(prefix.toUpperCase()));
+    }
+
+    // navigator.bluetooth.getDevices() liste les appareils déjà autorisés par l'utilisateur.
+    // On peut alors s'y connecter directement, sans rouvrir le sélecteur du navigateur.
+    function supportsSilentConnection() {
+        return !!(navigator.bluetooth && typeof navigator.bluetooth.getDevices === 'function');
+    }
+
+    async function getKnownPrinterDevice() {
+        if (!supportsSilentConnection()) return null;
+
         try {
-            setModalState('searching', '--');
-            updateStatus("Connexion BLE...", "connecting");
+            const devices = await navigator.bluetooth.getDevices();
+            if (!devices || devices.length === 0) return null;
 
-            const activeServices = [...BT_SERVICES];
+            let savedId = null;
+            try { savedId = localStorage.getItem(DEVICE_ID_STORAGE_KEY); } catch (e) {}
 
-            let deviceOptions = {
-                filters: [{ namePrefix: 'X6h-2CD2' }],
-                optionalServices: activeServices
-            };
-
-            bleDevice = await navigator.bluetooth.requestDevice(deviceOptions);
-
-            // Étape 2 UX : Appareil Sélectionné / Trouvé
-            setModalState('found', bleDevice.name || "X6h-2CD2");
-
-            bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-
-            // Retry logic for GATT connection to handle "Connection Error: Connection attempt failed"
-            let retries = 3;
-            while (retries > 0) {
-                try {
-                    bleGattServer = await bleDevice.gatt.connect();
-                    break;
-                } catch (err) {
-                    retries--;
-                    if (retries === 0) {
-                        throw err;
-                    }
-                    console.warn(`Erreur de connexion GATT, tentatives restantes: ${retries}. Réessai dans 500ms...`);
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
+            if (savedId) {
+                const savedDevice = devices.find(d => d.id === savedId);
+                if (savedDevice) return savedDevice;
             }
 
-            let targetChar = null;
+            const namedDevice = devices.find(d => isPrinterName(d.name));
+            if (namedDevice) return namedDevice;
+
+            // Un seul appareil autorisé pour ce site : on considère que c'est l'imprimante.
+            return devices.length === 1 ? devices[0] : null;
+        } catch (error) {
+            console.warn("getDevices() indisponible ou refusé :", error);
+            return null;
+        }
+    }
+
+    // --- CONNEXION GATT COMPLÈTE, 100% DANS L'APPLICATION ---
+    // Aucune fenêtre système : on travaille sur un appareil déjà autorisé.
+    async function connectToDevice(device, options = {}) {
+        const notify = options.notify !== false;
+
+        bleDevice = device;
+        setModalState('found', device.name || 'Imprimante');
+        updateStatus("Connexion...", "connecting");
+
+        device.addEventListener('gattserverdisconnected', onDisconnected);
+
+        const activeServices = [...BT_SERVICES];
+
+        // Retry logic for GATT connection to handle "Connection Error: Connection attempt failed"
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                bleGattServer = await device.gatt.connect();
+                break;
+            } catch (err) {
+                retries--;
+                if (retries === 0) {
+                    throw err;
+                }
+                console.warn(`Erreur de connexion GATT, tentatives restantes: ${retries}. Réessai dans 500ms...`);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        let targetChar = null;
             let targetNotifyChar = null;
             const discoveredInfo = [];
 
@@ -1410,9 +1480,11 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
                 }
             }
 
-            // Étape 3 UX : Connecté avec succès
-            setModalState('connected', bleDevice.name || "X6h-2CD2");
+            // Étape 3 UX : Connecté avec succès (100% dans l'application)
+            try { localStorage.setItem(DEVICE_ID_STORAGE_KEY, device.id); } catch (e) {}
+            setModalState('connected', device.name || 'Imprimante');
             updateStatus("Connecté (BLE)", "connected");
+            stopAutoReconnect();
 
             btnConnect.disabled = true;
             btnDisconnect.disabled = false;
@@ -1422,30 +1494,148 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             btnPrintDirect.disabled = false;
             updateQueueButtonsState();
 
-            setTimeout(() => closeModal(), 1800);
+            if (notify) {
+                showToast(`Imprimante connectée${device.name ? ' : ' + device.name : ''}.`, 'success', 3500);
+            }
+
+            setTimeout(() => closeModal(), 1200);
+    }
+
+    // --- RECONNEXION AUTOMATIQUE EN ARRIÈRE-PLAN (SANS FENÊTRE SYSTÈME) ---
+    // Tant qu'une imprimante a déjà été autorisée, l'application retente la connexion
+    // toute seule (avec un délai croissant) sans jamais déranger l'utilisateur.
+    function scheduleAutoReconnect(delay) {
+        if (autoReconnectTimer) return;
+        if (manualDisconnect) return;
+        if (!supportsSilentConnection()) return;
+
+        const wait = typeof delay === 'number' ? delay : autoReconnectDelay;
+
+        autoReconnectTimer = setTimeout(async () => {
+            autoReconnectTimer = null;
+
+            if (manualDisconnect) return;
+            if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) return;
+            if (isConnecting) {
+                scheduleAutoReconnect(Math.max(autoReconnectDelay, 4000));
+                return;
+            }
+
+            const knownPrinter = await getKnownPrinterDevice();
+            if (!knownPrinter) return;
+
+            await connectBluetoothBLE({ silent: true });
+
+            if (!(bleDevice && bleDevice.gatt && bleDevice.gatt.connected)) {
+                autoReconnectDelay = Math.min(autoReconnectDelay * 2, 30000);
+                scheduleAutoReconnect();
+            }
+        }, wait);
+    }
+
+    function stopAutoReconnect() {
+        if (autoReconnectTimer) {
+            clearTimeout(autoReconnectTimer);
+            autoReconnectTimer = null;
+        }
+        autoReconnectDelay = 2000;
+    }
+
+    // --- CONNEXION BLE : RECONNEXION INVISIBLE D'ABORD, APPAIRAGE UNIQUE SI NÉCESSAIRE ---
+    // IMPORTANT : la fenêtre de sélection d'appareil (navigateur / OS) ne peut pas être
+    // supprimée pour le TOUT PREMIER appairage, c'est une contrainte de l'API Web Bluetooth.
+    // En revanche, une fois l'imprimante autorisée, la connexion se déroule entièrement
+    // dans l'application, en tâche de fond, sans aucune fenêtre système et sans bloquer
+    // l'utilisateur (il peut continuer à saisir, imprimer, changer de fenêtre…).
+    async function connectBluetoothBLE(options = {}) {
+        const silent = options && options.silent === true;
+
+        if (isConnecting) return;
+        if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) return;
+
+        isConnecting = true;
+        manualDisconnect = false;
+
+        try {
+            // En mode automatique (arrière-plan) on n'ouvre AUCUNE fenêtre, ni dans
+            // l'application, ni dans le système.
+            if (!silent) {
+                openModal();
+                setModalState('searching', '--');
+            }
+            updateStatus("Connexion...", "connecting");
+
+            // 1) Reconnexion silencieuse à une imprimante déjà autorisée.
+            let device = await getKnownPrinterDevice();
+
+            // 2) Aucune imprimante connue : premier appairage (sélecteur du navigateur, une fois).
+            if (!device) {
+                if (silent) {
+                    // En tâche de fond, on ne dérange pas l'utilisateur avec une fenêtre.
+                    updateStatus("Déconnecté", "disconnected");
+                    return;
+                }
+
+                if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== 'function') {
+                    throw new Error("Web Bluetooth n'est pas disponible. Utilisez Chrome ou Edge (Android / ordinateur) en HTTPS.");
+                }
+
+                modalStatusText.textContent = "Premier appairage : choisissez l'imprimante dans la liste du navigateur (cette étape n'a lieu qu'une seule fois).";
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'X6h-2CD2' }],
+                    optionalServices: [...BT_SERVICES]
+                });
+                setModalState('found', device.name || 'Imprimante');
+            }
+
+            // 3) Connexion complète, pilotée par l'application.
+            await connectToDevice(device, { notify: !silent });
 
         } catch (error) {
-            console.error("Erreur de connexion BLE:", error);
-            alert("Échec de connexion Bluetooth : " + error.message);
+            const userCancelled = error && error.name === 'NotFoundError';
+            if (userCancelled) {
+                console.info("Appairage annulé par l'utilisateur.");
+            } else {
+                console.error("Erreur de connexion BLE:", error);
+            }
+
             updateStatus("Déconnecté", "disconnected");
             closeModal();
+
+            if (!silent) {
+                if (userCancelled) {
+                    showToast("Aucune imprimante sélectionnée. L'appairage n'est nécessaire qu'une seule fois : relancez la connexion.", 'warning');
+                } else {
+                    showToast("Échec de connexion Bluetooth : " + (error.message || error), 'error');
+                }
+            }
+
+            // Nouvelle tentative automatique, en arrière-plan, sans déranger l'utilisateur.
+            scheduleAutoReconnect();
+        } finally {
+            isConnecting = false;
         }
     }
 
     function disconnectPrinter() {
+        manualDisconnect = true;
+        stopAutoReconnect();
+
         if (bleDevice && bleDevice.gatt && bleDevice.gatt.connected) {
             bleDevice.gatt.disconnect();
+            return; // onDisconnected() terminera le nettoyage
         }
         onDisconnected();
     }
 
     function onDisconnected() {
+        const wasManual = manualDisconnect;
+        manualDisconnect = false;
+
         bleDevice = null;
         bleGattServer = null;
         bleWriteCharacteristic = null;
-        if (bleNotifyCharacteristic) {
-            bleNotifyCharacteristic = null;
-        }
+        bleNotifyCharacteristic = null;
 
         updateStatus("Déconnecté", "disconnected");
         btnConnect.disabled = false;
@@ -1455,6 +1645,11 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
         btnManualFeed.disabled = true;
         btnPrintDirect.disabled = true;
         updateQueueButtonsState();
+
+        // Perte de liaison (imprimante éteinte, éloignée…) : on retente tout seul.
+        if (!wasManual) {
+            scheduleAutoReconnect(1500);
+        }
     }
 
     function updateStatus(text, stateClass) {
@@ -1668,18 +1863,18 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             }
         } catch (error) {
             console.error("Erreur lors de l'impression du lot:", error);
-            alert("Erreur lors de l'impression par lot : " + error.message);
+            showToast("Erreur lors de l'impression par lot : " + error.message, 'error');
         } finally {
             updateQueueButtonsState();
         }
     }
 
     // --- EVENT LISTENERS ---
-    btnConnect.addEventListener('click', connectBluetoothBLE);
+    btnConnect.addEventListener('click', () => connectBluetoothBLE());
     btnDisconnect.addEventListener('click', disconnectPrinter);
 
     btnCloseModal.addEventListener('click', closeModal);
-    btnModalConnectBle.addEventListener('click', connectBluetoothBLE);
+    btnModalConnectBle.addEventListener('click', () => connectBluetoothBLE());
 
     btnManualFeed.addEventListener('click', async () => {
         try {
@@ -1694,7 +1889,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
             }
             updateStatus("Connecté", "connected");
         } catch (error) {
-            alert("Erreur avance papier : " + error.message);
+            showToast("Erreur avance papier : " + error.message, 'error');
             updateStatus("Connecté", "connected");
         }
     });
@@ -1713,7 +1908,7 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
 
             await printCanvas(printCanvasEl, postFeed);
         } catch (error) {
-            alert("Erreur lors de l'impression : " + error.message);
+            showToast("Erreur lors de l'impression : " + error.message, 'error');
         }
     });
 
@@ -1725,4 +1920,14 @@ const days = Math.floor((utcNow - utcDob) / (1000 * 3600 * 24));
     renderCanvas();
     renderFreePreview();
     updateQueueButtonsState();
+
+    // Connexion automatique au démarrage : si l'imprimante a déjà été appairée, elle se
+    // connecte toute seule en arrière-plan, sans ouvrir aucune fenêtre (ni système, ni appli).
+    if (supportsSilentConnection()) {
+        connectBluetoothBLE({ silent: true }).finally(() => {
+            if (!(bleDevice && bleDevice.gatt && bleDevice.gatt.connected)) {
+                scheduleAutoReconnect(3000);
+            }
+        });
+    }
 });

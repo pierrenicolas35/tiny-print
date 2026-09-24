@@ -617,6 +617,107 @@ label {
     color: var(--text-color);
 }
 
+/*
+ * FENÊTRE DE CONNEXION NON BLOQUANTE
+ * Elle se loge en bas de l'écran, sans voile sombre, et laisse passer les clics :
+ * l'utilisateur peut continuer à travailler ou changer de fenêtre pendant la connexion.
+ */
+.modal-overlay.non-blocking {
+    background: transparent;
+    backdrop-filter: none;
+    align-items: flex-end;
+    padding: 0 14px 14px 14px;
+    pointer-events: none;
+}
+
+.modal-overlay.non-blocking .modal-content {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 440px;
+    padding: 16px 20px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 10px 30px -8px rgba(15, 23, 42, 0.35);
+}
+
+/* Version compacte : la fenêtre reste discrète pour ne pas gêner le travail en cours */
+.modal-overlay.non-blocking .modal-content h3 {
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+}
+
+.modal-overlay.non-blocking .printer-illustration-container {
+    width: 92px;
+    height: 92px;
+    margin: 0 auto 10px auto;
+}
+
+.modal-overlay.non-blocking .printer-miniature-wrapper {
+    width: 74px;
+    height: 74px;
+}
+
+.modal-overlay.non-blocking .printer-svg {
+    width: 74px;
+    height: 74px;
+}
+
+.modal-overlay.non-blocking .radar-pulse {
+    width: 82px;
+    height: 82px;
+}
+
+.modal-overlay.non-blocking .modal-status-text {
+    font-size: 0.88rem;
+}
+
+.modal-overlay.non-blocking .modal-device-name {
+    font-size: 1rem;
+    margin-bottom: 12px;
+}
+
+.modal-overlay.non-blocking .modal-hint {
+    margin-bottom: 12px;
+}
+
+/* NOTIFICATIONS NON BLOQUANTES (remplacent les alertes système) */
+.toast-container {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(92vw, 460px);
+    pointer-events: none;
+}
+
+.toast {
+    background: #1e293b;
+    color: #f8fafc;
+    border-left: 5px solid var(--primary-color);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    line-height: 1.35;
+    box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.45);
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: auto;
+}
+
+.toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-success { border-left-color: var(--success-color); }
+.toast-error { border-left-color: var(--danger-color); }
+.toast-warning { border-left-color: #f1c40f; }
+.toast-info { border-left-color: var(--primary-color); }
+
 /* MINIATURE & ANIMATION RADAR */
 .printer-illustration-container {
     position: relative;

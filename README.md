@@ -20,6 +20,7 @@ Application web statique autonome (Client-side pure, zéro serveur, zéro télé
   - **Mise en forme type traitement de texte** : police (7 choix), taille (6-96 px), gras, italique, souligné et alignement gauche/centre/droite. Aucune couleur : l'impression est monochrome.
   - **File d'attente** : ajout à la file et impression directe, au même titre que les étiquettes du formulaire.
 - **100% Client-side & Sécurisé** : Aucun appel réseau externe, aucun CDN distant, aucune transmission de données.
+- **Connexion Bluetooth non bloquante** : après le premier appairage, plus aucune fenêtre système ; reconnexion automatique en tâche de fond pendant que vous continuez à travailler (voir § « Connexion à l'imprimante »).
 - **Support du Protocole Tiny Print / GB01** :
   - Conversion automatique du canvas en trames binaires 1-bit bitmap (48 octets/ligne x 240 lignes).
   - Calcul de checksum CRC8 et empaquetage des commandes Tiny Print (`0x51 0x78`).
@@ -79,6 +80,38 @@ Ouvrez ensuite `http://localhost:8000` dans Chrome ou Edge.
 
 ### Option 2 : Extension VS Code
 Utilisez l'extension **Live Server** dans VS Code.
+
+---
+
+## 🔵 Connexion à l'imprimante (sans fenêtre système)
+
+L'application distingue deux moments :
+
+1. **Le tout premier appairage** — Il ne peut pas être évité : l'API Web Bluetooth
+   impose que l'utilisateur désigne lui-même l'appareil dans **la liste proposée par le
+   navigateur / le système** (fenêtre `requestDevice`). Cette étape n'a lieu **qu'une seule fois**.
+   ⚠️ Ne changez pas de fenêtre pendant cette unique sélection : le navigateur annule la
+   demande si la fenêtre perd le focus.
+2. **Toutes les connexions suivantes** — L'application retrouve l'imprimante via
+   `navigator.bluetooth.getDevices()` (appareils déjà autorisés) et se connecte
+   **directement, à l'intérieur de l'application** :
+   - **Aucune fenêtre système ne s'ouvre** ;
+   - la connexion se fait **en tâche de fond**, sans bloquer l'interface : vous pouvez
+     continuer à saisir vos étiquettes, imprimer, ou changer de fenêtre ;
+   - au **chargement de la page**, l'application tente de se reconnecter automatiquement
+     à la dernière imprimante utilisée ;
+   - après une **perte de liaison** (imprimante éteinte, éloignée, économie d'énergie),
+     elle retente automatiquement, avec un délai progressif (2 s, 4 s, 8 s… jusqu'à 30 s) ;
+   - après une **déconnexion manuelle**, aucune reconnexion automatique n'est déclenchée.
+
+La fenêtre de connexion de l'application est elle-même **non bloquante** : elle se loge en bas
+de l'écran, laisse passer les clics et peut être fermée à tout moment (`×`) sans interrompre
+la connexion. Les anciennes alertes système bloquantes sont remplacées par des notifications
+discrètes qui disparaissent automatiquement.
+
+> ℹ️ La reconnexion sans fenêtre est disponible dans **Chrome / Edge (version 118 ou plus)**.
+> Sur un navigateur plus ancien, chaque connexion repasse par la liste du navigateur
+> (le comportement historique), mais l'application reste utilisable.
 
 ---
 

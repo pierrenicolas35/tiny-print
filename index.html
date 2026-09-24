@@ -164,11 +164,11 @@
 
     <footer class="app-footer">
         <p>Application statique autonome &bull; Fonctionne 100% hors-ligne dans votre navigateur &bull; Protocole GB01 / Tiny Print</p>
-        <p class="version-info" id="buildVersion">Dernière mise à jour : 23/09/2026 à 09:15</p>
+        <p class="version-info" id="buildVersion">Dernière mise à jour : 24/09/2026 à 09:52</p>
     </footer>
 
-    <!-- Modal Pop-up de Connexion Android UX -->
-    <div id="connectionModal" class="modal-overlay hidden">
+    <!-- Modal Pop-up de Connexion (non bloquant : la fenêtre se loge en bas et laisse l'application utilisable) -->
+    <div id="connectionModal" class="modal-overlay non-blocking hidden">
         <div class="modal-content">
             <button id="btnCloseModal" class="modal-close" aria-label="Fermer" title="Fermer">&times;</button>
             <h3 id="modalTitle">Recherche de l'imprimante...</h3>
@@ -198,6 +198,7 @@
 
             <p id="modalStatusText" class="modal-status-text">Recherche des appareils X6h-2CD2, X6, GB01...</p>
             <div id="modalDeviceName" class="modal-device-name">--</div>
+            <p class="modal-hint">Vous pouvez continuer à utiliser l'application ou changer de fenêtre pendant la connexion : elle se poursuit en arrière-plan.</p>
 
             <div class="modal-actions">
                 <button id="btnModalConnectBle" class="btn btn-primary">Connexion Bluetooth (BLE)</button>
@@ -297,6 +298,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Notifications non bloquantes (remplacent les alertes système) -->
+    <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
     <script src="app.js"></script>
 </body>
